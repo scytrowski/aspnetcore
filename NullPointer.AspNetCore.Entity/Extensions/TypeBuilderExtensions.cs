@@ -7,6 +7,12 @@ namespace NullPointer.AspNetCore.Entity.Extensions
 {
     public static class TypeBuilderExtensions
     {
+        /// <summary>
+        /// Defines pass through constructor based on provided one
+        /// </summary>
+        /// <param name="typeBuilder"></param>
+        /// <param name="constructorInfo">Constructor to pass to</param>
+        /// <returns></returns>
         public static ConstructorBuilder DefinePassThroughConstructor(this TypeBuilder typeBuilder, ConstructorInfo constructorInfo)
         {
             Type[] constructorParameterTypes = constructorInfo.GetParameters()
@@ -29,6 +35,11 @@ namespace NullPointer.AspNetCore.Entity.Extensions
             return constructorBuilder;
         }
 
+        /// <summary>
+        /// Defines all available pass through constructors
+        /// </summary>
+        /// <param name="typeBuilder"></param>
+        /// <returns></returns>
         public static ConstructorBuilder[] DefinePassThroughConstructors(this TypeBuilder typeBuilder)
         {
             Type baseType = typeBuilder.BaseType;
@@ -44,6 +55,13 @@ namespace NullPointer.AspNetCore.Entity.Extensions
             return createdConstructors;
         }    
 
+        /// <summary>
+        /// Defines basic property getter for provided property builder
+        /// </summary>
+        /// <param name="typeBuilder"></param>
+        /// <param name="propertyBuilder">Property builder for which getter will be created</param>
+        /// <param name="propertyFieldBuilder">Field builder that provides values for getter</param>
+        /// <returns></returns>
         public static MethodBuilder DefinePropertyGetter(this TypeBuilder typeBuilder, PropertyBuilder propertyBuilder, FieldBuilder propertyFieldBuilder)
         {
             MethodBuilder propertyGetterBuilder = typeBuilder.DefineMethod(
@@ -59,6 +77,13 @@ namespace NullPointer.AspNetCore.Entity.Extensions
             return propertyGetterBuilder;
         }
 
+        /// <summary>
+        /// Defines basic property setter for provided property builder
+        /// </summary>
+        /// <param name="typeBuilder"></param>
+        /// <param name="propertyBuilder">Property builder for which setter will be created</param>
+        /// <param name="propertyFieldBuilder">Field builder that will be used in setter</param>
+        /// <returns></returns>
         public static MethodBuilder DefinePropertySetter(this TypeBuilder typeBuilder, PropertyBuilder propertyBuilder, FieldBuilder propertyFieldBuilder)
         {
             MethodBuilder propertySetterBuilder = typeBuilder.DefineMethod(
@@ -74,6 +99,13 @@ namespace NullPointer.AspNetCore.Entity.Extensions
             return propertySetterBuilder;
         }
 
+        /// <summary>
+        /// Defines basic property 
+        /// </summary>
+        /// <param name="typeBuilder"></param>
+        /// <param name="name">Name of the property</param>
+        /// <param name="propertyType">Type of the property</param>
+        /// <returns></returns>
         public static PropertyBuilder DefineBasicProperty(this TypeBuilder typeBuilder, string name, Type propertyType)
         {
             FieldBuilder propertyFieldBuilder = typeBuilder.DefineField(
