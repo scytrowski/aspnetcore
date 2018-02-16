@@ -8,6 +8,7 @@ using NullPointer.AspNetCore.Entity.Extensions;
 using NullPointer.AspNetCore.Rest.Extensions;
 using NullPointer.AspNetCore.Rest.Models;
 using NullPointer.AspNetCore.Rest.Services.Repositories;
+using NullPointer.AspNetCore.Rest.Services.Rest;
 using Xunit;
 
 namespace NullPointer.AspNetCore.Rest.Tests
@@ -44,6 +45,18 @@ namespace NullPointer.AspNetCore.Rest.Tests
             ServiceDescriptor dataRepositoryDescriptor = services
                 .SingleOrDefault(d => d.ImplementationType == dataRepositoryType);
             Assert.NotNull(dataRepositoryDescriptor);
+        }
+
+        [Fact]
+        public void CheckIfRestRegistryIsRegistered()
+        {
+            DbContextBuilder contextBuilder = new DbContextBuilder()
+                .WithEntity<ClassForServiceCollectionExtensionsText>();
+            IServiceCollection services = new ServiceCollection();
+            services.AddRest(contextBuilder);
+            ServiceDescriptor restRegistryDescriptor = services
+                .SingleOrDefault(d => d.ServiceType == typeof(IRestRegistry));
+            Assert.NotNull(restRegistryDescriptor);
         }
     }
 }

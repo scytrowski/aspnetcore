@@ -1,9 +1,12 @@
 using System;
+using System.Collections.Generic;
+using System.Linq;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.DependencyInjection;
 using NullPointer.AspNetCore.Entity.Builders;
 using NullPointer.AspNetCore.Entity.Extensions;
 using NullPointer.AspNetCore.Rest.Services.Repositories;
+using NullPointer.AspNetCore.Rest.Services.Rest;
 
 namespace NullPointer.AspNetCore.Rest.Extensions
 {
@@ -12,39 +15,36 @@ namespace NullPointer.AspNetCore.Rest.Extensions
         public static void AddRest(this IServiceCollection services, DbContextBuilder contextBuilder)
         {
             services.AddDbContext(contextBuilder);
-            Type iDataRepositoryType = typeof(IDataRepository<>);
-            Type dataRepositoryType = typeof(DataRepository<>);
-
-            foreach (Type entityType in contextBuilder.RegisteredEntities)
-            {
-                if (entityType.IsRestModel()) 
-                {
-                    services.AddScoped(
-                        iDataRepositoryType.MakeGenericType(entityType),
-                        dataRepositoryType.MakeGenericType(entityType)
-                    );
-                }
-            }
+            IEnumerable<Type> restModelTypes = contextBuilder.RegisteredEntities
+                .Where(t => t.IsRestModel());
+            services.RegisterRestModelTypes(restModelTypes);
         }
 
         public static void AddRest<TDbContext>(this IServiceCollection services) where TDbContext : DbContext
         {
             services.AddDbContext<TDbContext>();
             Type dbContextType = typeof(TDbContext);
-            Type[] entityTypes = dbContextType.GetDefinedDbSetTypes();
+            IEnumerable<Type> restModelTypes = dbContextType.GetDefinedDbSetTypes()
+                .Where(t => t.IsRestModel());
+            services.RegisterRestModelTypes(restModelTypes);
+        }
+
+        private static void RegisterRestModelTypes(this IServiceCollection services, IEnumerable<Type> modelTypes)
+        {
+            IRestRegistry restRegistry = new RestRegistry();
             Type iDataRepositoryType = typeof(IDataRepository<>);
             Type dataRepositoryType = typeof(DataRepository<>);
 
-            foreach (Type entityType in entityTypes)
+            foreach (Type modelType in modelTypes)
             {
-                if (entityType.IsRestModel())
-                {
-                    services.AddScoped(
-                        iDataRepositoryType.MakeGenericType(entityType),
-                        dataRepositoryType.MakeGenericType(entityType)
-                    );
-                }
+                restRegistry.Register(modelType);
+                services.AddScoped(
+                    iDataRepositoryType.MakeGenericType(modelType),
+                    dataRepositoryType.MakeGenericType(modelType)
+                );
             }
+
+            services.AddSingleton(typeof(IRestRegistry), restRegistry);
         }
     }
 }
