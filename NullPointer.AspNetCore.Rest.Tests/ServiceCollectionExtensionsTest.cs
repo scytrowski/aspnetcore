@@ -40,11 +40,13 @@ namespace NullPointer.AspNetCore.Rest.Tests
                 .WithEntity<ClassForServiceCollectionExtensionsText>();
             IServiceCollection services = new ServiceCollection();
             services.AddRest(contextBuilder);
+            Type iDataRepositoryType = typeof(IDataRepository<>)
+                .MakeGenericType(typeof(ClassForServiceCollectionExtensionsText));
             Type dataRepositoryType = typeof(DataRepository<>)
                 .MakeGenericType(typeof(ClassForServiceCollectionExtensionsText));
             ServiceDescriptor dataRepositoryDescriptor = services
-                .SingleOrDefault(d => d.ImplementationType == dataRepositoryType);
-            Assert.NotNull(dataRepositoryDescriptor);
+                .Single(d => d.ServiceType == iDataRepositoryType);
+            Assert.Equal(dataRepositoryType, dataRepositoryDescriptor.ImplementationType);
         }
 
         [Fact]
@@ -57,6 +59,18 @@ namespace NullPointer.AspNetCore.Rest.Tests
             ServiceDescriptor restRegistryDescriptor = services
                 .SingleOrDefault(d => d.ServiceType == typeof(IRestRegistry));
             Assert.NotNull(restRegistryDescriptor);
+        }
+
+        [Fact]
+        public void CheckIfRestRegistryHasValidImplementation()
+        {
+            DbContextBuilder contextBuilder = new DbContextBuilder()
+                .WithEntity<ClassForServiceCollectionExtensionsText>();
+            IServiceCollection services = new ServiceCollection();
+            services.AddRest(contextBuilder);
+            ServiceDescriptor restRegistryDescriptor = services
+                .Single(d => d.ServiceType == typeof(IRestRegistry));
+            Assert.IsAssignableFrom<RestRegistry>(restRegistryDescriptor.ImplementationInstance);
         }
 
         [Fact]
@@ -73,15 +87,39 @@ namespace NullPointer.AspNetCore.Rest.Tests
         }
 
         [Fact]
-        public void CheckIfRestRouteCreatorIsRegistered()
+        public void CheckIfRestRouterIsRegistered()
         {
             DbContextBuilder contextBuilder = new DbContextBuilder()
                 .WithEntity<ClassForServiceCollectionExtensionsText>();
             IServiceCollection services = new ServiceCollection();
             services.AddRest(contextBuilder);
-            ServiceDescriptor routeCreatorDescriptor = services
-                .SingleOrDefault(d => d.ServiceType == typeof(IRestRouteCreator));
-            Assert.NotNull(routeCreatorDescriptor);
+            ServiceDescriptor restRouterDescriptor = services
+                .SingleOrDefault(d => d.ServiceType == typeof(IRestRouter));
+            Assert.NotNull(restRouterDescriptor);
+        }
+
+        [Fact]
+        public void CheckIfRestRouterHasValidImplementation()
+        {
+            DbContextBuilder contextBuilder = new DbContextBuilder()
+                .WithEntity<ClassForServiceCollectionExtensionsText>();
+            IServiceCollection services = new ServiceCollection();
+            services.AddRest(contextBuilder);
+            ServiceDescriptor restRouterDescriptor = services
+                .Single(d => d.ServiceType == typeof(IRestRouter));
+            Assert.Equal(typeof(RestRouter), restRouterDescriptor.ImplementationType);
+        }
+
+        [Fact]
+        public void CheckIfRestRouterHasValidScope()
+        {
+            DbContextBuilder contextBuilder = new DbContextBuilder()
+                .WithEntity<ClassForServiceCollectionExtensionsText>();
+            IServiceCollection services = new ServiceCollection();
+            services.AddRest(contextBuilder);
+            ServiceDescriptor restRouterDescriptor = services
+                .Single(d => d.ServiceType == typeof(IRestRouter));
+            Assert.Equal(ServiceLifetime.Singleton, restRouterDescriptor.Lifetime);
         }
     }
 }
