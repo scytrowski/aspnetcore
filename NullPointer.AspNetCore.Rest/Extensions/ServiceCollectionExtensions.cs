@@ -45,7 +45,7 @@ namespace NullPointer.AspNetCore.Rest.Extensions
             }
 
             services.AddSingleton(typeof(IRestRegistry), restRegistry);
-            services.AddSingleton<IRestRouteCreator, RestRouteCreator>();
+            services.AddSingleton<IRestRouter, RestRouter>();
         }
     }
 }

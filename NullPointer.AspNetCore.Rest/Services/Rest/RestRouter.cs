@@ -11,7 +11,7 @@ using NullPointer.AspNetCore.Rest.Services.Repositories;
 
 namespace NullPointer.AspNetCore.Rest.Services.Rest
 {
-    public class RestRouter : IRouter
+    public class RestRouter : IRestRouter
     {
         public RestRouter(IRestRegistry restRegistry, IConfiguration configuration, IServiceScopeFactory scopeFactory)
         {

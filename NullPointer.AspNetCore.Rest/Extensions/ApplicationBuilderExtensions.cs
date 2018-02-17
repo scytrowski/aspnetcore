@@ -12,9 +12,9 @@ namespace NullPointer.AspNetCore.Rest.Extensions
     {
         public static void UseRest(this IApplicationBuilder app)
         {
-            IRestRouteCreator routeCreator = app.ApplicationServices
-                .GetRequiredService<IRestRouteCreator>();
-            routeCreator.Build(app);
+            IRestRouter restRouter = app.ApplicationServices
+                .GetRequiredService<IRestRouter>();
+            app.UseRouter(restRouter);
         }
     }
 }
