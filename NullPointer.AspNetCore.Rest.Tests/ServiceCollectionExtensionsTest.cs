@@ -58,5 +58,30 @@ namespace NullPointer.AspNetCore.Rest.Tests
                 .SingleOrDefault(d => d.ServiceType == typeof(IRestRegistry));
             Assert.NotNull(restRegistryDescriptor);
         }
+
+        [Fact]
+        public void CheckIfRestRegistryHasValidScope()
+        {
+            DbContextBuilder contextBuilder = new DbContextBuilder()
+                .WithEntity<ClassForServiceCollectionExtensionsText>();
+            IServiceCollection services = new ServiceCollection();
+            services.AddRest(contextBuilder);
+            ServiceDescriptor restRegistryDescriptor = services
+                .Single(d => d.ServiceType == typeof(IRestRegistry));
+            ServiceLifetime restRegistryLifetime = restRegistryDescriptor.Lifetime;
+            Assert.Equal(ServiceLifetime.Singleton, restRegistryLifetime);
+        }
+
+        [Fact]
+        public void CheckIfRestRouteCreatorIsRegistered()
+        {
+            DbContextBuilder contextBuilder = new DbContextBuilder()
+                .WithEntity<ClassForServiceCollectionExtensionsText>();
+            IServiceCollection services = new ServiceCollection();
+            services.AddRest(contextBuilder);
+            ServiceDescriptor routeCreatorDescriptor = services
+                .SingleOrDefault(d => d.ServiceType == typeof(IRestRouteCreator));
+            Assert.NotNull(routeCreatorDescriptor);
+        }
     }
 }
