@@ -2,6 +2,7 @@ using System;
 using System.Collections.Generic;
 using System.Reflection;
 using NullPointer.AspNetCore.Entity.Builders;
+using NullPointer.AspNetCore.Rest.Models;
 
 namespace NullPointer.AspNetCore.Rest.Extensions
 {

@@ -5,6 +5,8 @@ using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.DependencyInjection;
 using NullPointer.AspNetCore.Entity.Builders;
 using NullPointer.AspNetCore.Entity.Extensions;
+using NullPointer.AspNetCore.Rest.Builders;
+using NullPointer.AspNetCore.Rest.Models;
 using NullPointer.AspNetCore.Rest.Services.Repositories;
 using NullPointer.AspNetCore.Rest.Services.Rest;
 
@@ -12,24 +14,24 @@ namespace NullPointer.AspNetCore.Rest.Extensions
 {
     public static class ServiceCollectionExtensions
     {
-        public static void AddRest(this IServiceCollection services, DbContextBuilder contextBuilder)
+        public static RestOptionsBuilder AddRest(this IServiceCollection services, DbContextBuilder contextBuilder)
         {
             services.AddDbContext(contextBuilder);
             IEnumerable<Type> restModelTypes = contextBuilder.RegisteredEntities
                 .Where(t => t.IsRestModel());
-            services.RegisterRestModelTypes(restModelTypes);
+            return services.RegisterRestModelTypes(restModelTypes);
         }
 
-        public static void AddRest<TDbContext>(this IServiceCollection services) where TDbContext : DbContext
+        public static RestOptionsBuilder AddRest<TDbContext>(this IServiceCollection services) where TDbContext : DbContext
         {
             services.AddDbContext<TDbContext>();
             Type dbContextType = typeof(TDbContext);
             IEnumerable<Type> restModelTypes = dbContextType.GetDefinedDbSetTypes()
                 .Where(t => t.IsRestModel());
-            services.RegisterRestModelTypes(restModelTypes);
+            return services.RegisterRestModelTypes(restModelTypes);
         }
 
-        private static void RegisterRestModelTypes(this IServiceCollection services, IEnumerable<Type> modelTypes)
+        private static RestOptionsBuilder RegisterRestModelTypes(this IServiceCollection services, IEnumerable<Type> modelTypes)
         {
             IRestRegistry restRegistry = new RestRegistry();
             Type iDataRepositoryType = typeof(IDataRepository<>);
@@ -37,7 +39,9 @@ namespace NullPointer.AspNetCore.Rest.Extensions
 
             foreach (Type modelType in modelTypes)
             {
-                restRegistry.Register(modelType);
+                RestAllowedOperations modelAllowedOperations = modelType.GetRestAllowedOperations();
+                RestRegistryEntry modelTypeEntry = new RestRegistryEntry(modelType, modelAllowedOperations);
+                restRegistry.Register(modelTypeEntry);
                 services.AddScoped(
                     iDataRepositoryType.MakeGenericType(modelType),
                     dataRepositoryType.MakeGenericType(modelType)
@@ -47,6 +51,8 @@ namespace NullPointer.AspNetCore.Rest.Extensions
             services.AddSingleton(typeof(IRestRegistry), restRegistry);
             services.AddSingleton<IRestRouter, RestRouter>();
             services.AddRouting();
+            RestOptionsBuilder options = new RestOptionsBuilder(restRegistry);
+            return options;
         }
     }
 }

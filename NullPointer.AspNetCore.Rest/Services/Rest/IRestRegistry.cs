@@ -6,8 +6,7 @@ namespace NullPointer.AspNetCore.Rest.Services.Rest
 {
     public interface IRestRegistry
     {
-        void Register(Type modelType);
-        void Register<TModel>() where TModel : RestModel;
-        IEnumerable<Type> RegisteredModelTypes { get; }
+        void Register(RestRegistryEntry entry);
+        IEnumerable<RestRegistryEntry> Entries { get; }
     }
 }

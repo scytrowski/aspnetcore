@@ -248,8 +248,12 @@ namespace NullPointer.AspNetCore.Rest.Services.Rest
             else
                 ProvideDefaultConfiguration();
 
-            foreach (Type modelType in RestRegistry.RegisteredModelTypes)
-                _modelApiRoutes[modelType] = _apiBasePath.SafeAdd(modelType.Name);
+            foreach (RestRegistryEntry entry in RestRegistry.Entries)
+            {
+                Type entryType = entry.Type;
+                _modelApiRoutes[entryType] = _apiBasePath.SafeAdd(entryType.Name);
+                _modelAllowedOperations[entryType] = entry.AllowedOperations;
+            }
         }
 
         public IRestRegistry RestRegistry { get; }
@@ -257,6 +261,7 @@ namespace NullPointer.AspNetCore.Rest.Services.Rest
         public IServiceScopeFactory ScopeFactory { get; }
 
         private PathString _apiBasePath;
-        private Dictionary<Type, PathString> _modelApiRoutes = new Dictionary<Type, PathString>();
+        private readonly Dictionary<Type, PathString> _modelApiRoutes = new Dictionary<Type, PathString>();
+        private readonly Dictionary<Type, RestAllowedOperations> _modelAllowedOperations = new Dictionary<Type, RestAllowedOperations>();
     }
 }

@@ -8,22 +8,16 @@ namespace NullPointer.AspNetCore.Rest.Services.Rest
 {
     public class RestRegistry : IRestRegistry
     {
-        public void Register(Type modelType)
+        public void Register(RestRegistryEntry entry)
         {
-            if (!modelType.IsRestModel())
-                throw new ArgumentException("Model type must be valid rest model type");
+            if (!entry.Type.IsRestModel())
+                throw new ArgumentException("Entry type must be a valid subtype of RestModel");
 
-            _registeredModelTypes.Add(modelType);
+            _entryDictionary[entry.Type] = entry;
         }
 
-        public void Register<TModel>() where TModel : RestModel
-        {
-            Type modelType = typeof(TModel);
-            Register(modelType);
-        }
+        public IEnumerable<RestRegistryEntry> Entries => _entryDictionary.Values.AsEnumerable();
 
-        public IEnumerable<Type> RegisteredModelTypes => _registeredModelTypes.ToList().AsReadOnly();
-
-        private readonly HashSet<Type> _registeredModelTypes = new HashSet<Type>();
+        private readonly Dictionary<Type, RestRegistryEntry> _entryDictionary = new Dictionary<Type, RestRegistryEntry>();
     }
 }

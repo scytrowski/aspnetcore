@@ -128,7 +128,7 @@ namespace NullPointer.AspNetCore.Rest.Tests
                 .Returns(Task.CompletedTask);
             IDataRepository<ClassForRestRouterTest> repository = _repositoryMock.Object;
             IRestRegistry restRegistry = new RestRegistry();
-            restRegistry.Register<ClassForRestRouterTest>();
+            restRegistry.Register(new RestRegistryEntry(typeof(ClassForRestRouterTest), RestAllowedOperations.All));
             Mock<IServiceProvider> serviceProviderMock = new Mock<IServiceProvider>();
             serviceProviderMock.Setup(p => p.GetService(typeof(IDataRepository<ClassForRestRouterTest>)))
                 .Returns(repository);
