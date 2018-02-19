@@ -94,9 +94,9 @@ namespace NullPointer.AspNetCore.Rest.Services.Rest
                     IDataRepository<TModel> repository = scope.ServiceProvider
                         .GetRequiredService<IDataRepository<TModel>>();
                     await repository.AddAsync(model);
-                    PathString modelPath = _modelApiRoutes[typeof(TModel)].SafeAdd(model.Id.ToString());
+                    string modelLocation = GetModelLocation(model);
                     context.Response.StatusCode = StatusCodes.Status201Created;
-                    context.Response.Headers.Add("location", modelPath.Value);
+                    context.Response.Headers.Add("location", modelLocation);
                     await context.Response.WriteJsonAsync(model);
                 }
             };
@@ -113,7 +113,10 @@ namespace NullPointer.AspNetCore.Rest.Services.Rest
                     IDataRepository<TModel> repository = scope.ServiceProvider
                         .GetRequiredService<IDataRepository<TModel>>();
                     await repository.UpdateAsync(model);
+                    string modelLocation = GetModelLocation(model);
                     context.Response.StatusCode = StatusCodes.Status200OK;
+                    context.Response.Headers.Add("location", modelLocation);
+                    await context.Response.WriteJsonAsync(model);
                 }
             };
         }
@@ -218,6 +221,17 @@ namespace NullPointer.AspNetCore.Rest.Services.Rest
                 return;
 
             context.Handler = CreateRequestHandler(requestMethod, requestModelType, hasIdSegment, idNullable);
+        }
+
+        private string GetModelLocation<TModel>(TModel model) where TModel : RestModel
+        {
+            Type modelType = typeof(TModel);
+
+            if (!_modelApiRoutes.ContainsKey(modelType))
+                throw new InvalidOperationException("Provided model type must be registered");
+            
+            PathString modelPath = _modelApiRoutes[modelType].SafeAdd(model.Id.ToString());
+            return modelPath.Value;
         }
 
         private void ProvideDefaultConfiguration()

@@ -13,6 +13,7 @@ using NullPointer.AspNetCore.Entity.Builders;
 using NullPointer.AspNetCore.Entity.Services.Database;
 using NullPointer.AspNetCore.Rest.Extensions;
 using NullPointer.AspNetCore.Rest.Models;
+using NullPointer.AspNetCore.Rest.Tests.Extensions;
 using Xunit;
 
 namespace NullPointer.AspNetCore.Rest.Tests
@@ -79,6 +80,13 @@ namespace NullPointer.AspNetCore.Rest.Tests
         }
 
         [Fact]
+        public void CheckIfGetReturnsValidStatusCodeOnNotFoundModel()
+        {
+            HttpResponseMessage getResponse = DoGetAsync<ClassForRestIntegrationTest>(1).Result;
+            Assert.Equal(HttpStatusCode.NotFound, getResponse.StatusCode);
+        }
+
+        [Fact]
         public void CheckIfGetReturnsValidModel()
         {
             HttpResponseMessage addResponse = DoAddAsync(new ClassForRestIntegrationTest
@@ -136,6 +144,53 @@ namespace NullPointer.AspNetCore.Rest.Tests
             );
             Assert.NotNull(addedModel);
             Assert.Equal(testModel.Name, addedModel.Name);
+        }
+
+        [Fact]
+        public void CheckIfUpdateReturnsValidStatusCode()
+        {
+            ClassForRestIntegrationTest testModel = new ClassForRestIntegrationTest
+            {
+                Name = "TestName"
+            };
+            HttpResponseMessage addResponse = DoAddAsync(testModel).Result;
+            ClassForRestIntegrationTest addedModel = addResponse.Content.ReadAsJsonAsync<ClassForRestIntegrationTest>().Result;
+            addedModel.Name = "TestName2";
+            HttpResponseMessage updateResponse = DoUpdateAsync(addedModel).Result;
+            Assert.Equal(HttpStatusCode.OK, updateResponse.StatusCode);
+        }
+
+        [Fact]
+        public void CheckIfUpdateReturnsValidLocationHeader()
+        {
+            ClassForRestIntegrationTest testModel = new ClassForRestIntegrationTest
+            {
+                Name = "TestName"
+            };
+            HttpResponseMessage addResponse = DoAddAsync(testModel).Result;
+            ClassForRestIntegrationTest addedModel = addResponse.Content.ReadAsJsonAsync<ClassForRestIntegrationTest>().Result;
+            addedModel.Name = "TestName2";
+            HttpResponseMessage updateResponse = DoUpdateAsync(addedModel).Result;
+            string updateResponseLocation = updateResponse.Headers.Location.ToString();
+            string expectedLocation = $"/api/{nameof(ClassForRestIntegrationTest)}/{addedModel.Id}";
+            Assert.Equal(expectedLocation, updateResponseLocation);
+        }
+
+        [Fact]
+        public void CheckIfUpdateReturnsValidModel()
+        {
+            string newModelName = "TestName2";
+            ClassForRestIntegrationTest testModel = new ClassForRestIntegrationTest
+            {
+                Name = "TestName"
+            };
+            HttpResponseMessage addResponse = DoAddAsync(testModel).Result;
+            ClassForRestIntegrationTest addedModel = addResponse.Content.ReadAsJsonAsync<ClassForRestIntegrationTest>().Result;
+            addedModel.Name = newModelName;
+            HttpResponseMessage updateResponse = DoUpdateAsync(addedModel).Result;
+            ClassForRestIntegrationTest updatedModel = updateResponse.Content.ReadAsJsonAsync<ClassForRestIntegrationTest>().Result;
+            Assert.Equal(addedModel.Id, updatedModel.Id);
+            Assert.Equal(newModelName, updatedModel.Name);
         }
 
         private Task<HttpResponseMessage> DoGetAllAsync<TModel>()
