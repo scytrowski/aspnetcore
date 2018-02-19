@@ -6,8 +6,8 @@ namespace NullPointer.AspNetCore.Entity.Services.Database
     {
         public ConfigurableDbContext(IDbContextOptionsCreator optionsCreator, IDbContextModelCreator modelCreator)
         {
-            optionsCreator = OptionsCreator;
-            modelCreator = ModelCreator;
+            OptionsCreator = optionsCreator;
+            ModelCreator = modelCreator;
         }
 
         protected override void OnConfiguring(DbContextOptionsBuilder optionsBuilder)

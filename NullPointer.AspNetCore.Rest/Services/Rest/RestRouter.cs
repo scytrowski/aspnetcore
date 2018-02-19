@@ -226,7 +226,7 @@ namespace NullPointer.AspNetCore.Rest.Services.Rest
         {
             IConfigurationSection apiConfigurationSection = Configuration.GetSection("restApi");
 
-            if (apiConfigurationSection != null)
+            if (apiConfigurationSection?.Value != null)
                 _apiBasePath = new PathString(apiConfigurationSection.GetValue<string>("basePath"));
             else
                 ProvideDefaultConfiguration();

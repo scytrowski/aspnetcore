@@ -1,8 +1,8 @@
 <Project Sdk="Microsoft.NET.Sdk">
+  <ItemGroup>
+    <ProjectReference Include="..\NullPointer.AspNetCore.Entity\NullPointer.AspNetCore.Entity.csproj" />
+  </ItemGroup>
   <PropertyGroup>
     <TargetFramework>netcoreapp2.0</TargetFramework>
   </PropertyGroup>
-  <ItemGroup>
-    <PackageReference Include="NullPointer.AspNetCore.Entity" Version="0.1.0" />
-  </ItemGroup>
 </Project>
