@@ -43,6 +43,12 @@ namespace NullPointer.AspNetCore.Rest.Services.Rest
         {
             return async context => 
             {
+                if (!IsOperationAllowed<TModel>(RestAllowedOperations.GetAll))
+                {
+                    context.Response.StatusCode = StatusCodes.Status405MethodNotAllowed;
+                    return;
+                }
+
                 using (IServiceScope scope = ScopeFactory.CreateScope())
                 {
                     IDataRepository<TModel> repository = scope.ServiceProvider
@@ -58,7 +64,12 @@ namespace NullPointer.AspNetCore.Rest.Services.Rest
         {
             return async context =>
             {
-                if (id == null)
+                if (!IsOperationAllowed<TModel>(RestAllowedOperations.Get))
+                {
+                    context.Response.StatusCode = StatusCodes.Status405MethodNotAllowed;
+                    return;
+                } 
+                else if (id == null)
                 {
                     context.Response.StatusCode = StatusCodes.Status400BadRequest;
                     return;
@@ -87,6 +98,12 @@ namespace NullPointer.AspNetCore.Rest.Services.Rest
         {
             return async context =>
             {
+                if (!IsOperationAllowed<TModel>(RestAllowedOperations.Add))
+                {
+                    context.Response.StatusCode = StatusCodes.Status405MethodNotAllowed;
+                    return;
+                }
+
                 TModel model = await context.Request.ReadJsonAsync<TModel>();
 
                 using (IServiceScope scope = ScopeFactory.CreateScope())
@@ -106,6 +123,12 @@ namespace NullPointer.AspNetCore.Rest.Services.Rest
         {
             return async context =>
             {
+                if (!IsOperationAllowed<TModel>(RestAllowedOperations.Update))
+                {
+                    context.Response.StatusCode = StatusCodes.Status405MethodNotAllowed;
+                    return;
+                }
+
                 TModel model = await context.Request.ReadJsonAsync<TModel>();
 
                 using (IServiceScope scope = ScopeFactory.CreateScope())
@@ -125,6 +148,12 @@ namespace NullPointer.AspNetCore.Rest.Services.Rest
         {
             return async context =>
             {
+                if (!IsOperationAllowed<TModel>(RestAllowedOperations.Delete))
+                {
+                    context.Response.StatusCode = StatusCodes.Status405MethodNotAllowed;
+                    return;
+                }
+
                 TModel model = await context.Request.ReadJsonAsync<TModel>();
 
                 using (IServiceScope scope = ScopeFactory.CreateScope())
@@ -221,6 +250,16 @@ namespace NullPointer.AspNetCore.Rest.Services.Rest
                 return;
 
             context.Handler = CreateRequestHandler(requestMethod, requestModelType, hasIdSegment, idNullable);
+        }
+
+        private bool IsOperationAllowed<TModel>(RestAllowedOperations operation) where TModel: RestModel
+        {
+            Type modelType = typeof(TModel);
+
+            if (!_modelAllowedOperations.ContainsKey(modelType))
+                throw new InvalidOperationException("Provided model type must be registered");
+
+            return (_modelAllowedOperations[modelType] & operation) == operation;
         }
 
         private string GetModelLocation<TModel>(TModel model) where TModel : RestModel
