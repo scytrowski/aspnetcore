@@ -46,13 +46,12 @@ namespace NullPointer.AspNetCore.Rest.Tests
         {
             IWebHostBuilder hostBuilder = new WebHostBuilder()
                 .UseStartup<RestIntegrationTestStartup>();
-            _server = new TestServer(hostBuilder);
-            Client = _server.CreateClient();
+            Server = new TestServer(hostBuilder);
+            Client = Server.CreateClient();
         }
 
+        public TestServer Server { get; }
         public HttpClient Client { get; }
-
-        private readonly TestServer _server;
     }
 
     public class RestIntegrationTest
@@ -71,9 +70,7 @@ namespace NullPointer.AspNetCore.Rest.Tests
             {
                 Name = "TestName"
             }).Result;
-            ClassForRestIntegrationTest addedModel = JsonConvert.DeserializeObject<ClassForRestIntegrationTest>(
-                addResponse.Content.ReadAsStringAsync().Result
-            );
+            ClassForRestIntegrationTest addedModel = addResponse.Content.ReadAsJsonAsync<ClassForRestIntegrationTest>().Result;
             int addedModelId = addedModel.Id;
             HttpResponseMessage getResponse = DoGetAsync<ClassForRestIntegrationTest>(addedModelId).Result;
             Assert.Equal(HttpStatusCode.OK, getResponse.StatusCode);
@@ -93,14 +90,10 @@ namespace NullPointer.AspNetCore.Rest.Tests
             {
                 Name = "TestName"
             }).Result;
-            ClassForRestIntegrationTest addedModel = JsonConvert.DeserializeObject<ClassForRestIntegrationTest>(
-                addResponse.Content.ReadAsStringAsync().Result
-            );
+            ClassForRestIntegrationTest addedModel = addResponse.Content.ReadAsJsonAsync<ClassForRestIntegrationTest>().Result;
             int addedModelId = addedModel.Id;
             HttpResponseMessage getResponse = DoGetAsync<ClassForRestIntegrationTest>(addedModelId).Result;
-            ClassForRestIntegrationTest getModel = JsonConvert.DeserializeObject<ClassForRestIntegrationTest>(
-                getResponse.Content.ReadAsStringAsync().Result
-            );
+            ClassForRestIntegrationTest getModel = getResponse.Content.ReadAsJsonAsync<ClassForRestIntegrationTest>().Result;
             Assert.Equal(addedModel.Id, getModel.Id);
             Assert.Equal(addedModel.Name, getModel.Name);
         }
@@ -122,9 +115,7 @@ namespace NullPointer.AspNetCore.Rest.Tests
             {
                 Name = "TestName"
             }).Result;
-            ClassForRestIntegrationTest addedModel = JsonConvert.DeserializeObject<ClassForRestIntegrationTest>(
-                addResponse.Content.ReadAsStringAsync().Result
-            );
+            ClassForRestIntegrationTest addedModel = addResponse.Content.ReadAsJsonAsync<ClassForRestIntegrationTest>().Result;
             int addedModelId = addedModel.Id;
             string addResponseLocation = addResponse.Headers.Location.ToString();
             string expectedLocation = $"/api/{nameof(ClassForRestIntegrationTest)}/{addedModelId}";
@@ -139,9 +130,7 @@ namespace NullPointer.AspNetCore.Rest.Tests
                 Name = "TestName"
             };
             HttpResponseMessage addResponse = DoAddAsync(testModel).Result;
-            ClassForRestIntegrationTest addedModel = JsonConvert.DeserializeObject<ClassForRestIntegrationTest>(
-                addResponse.Content.ReadAsStringAsync().Result
-            );
+            ClassForRestIntegrationTest addedModel = addResponse.Content.ReadAsJsonAsync<ClassForRestIntegrationTest>().Result;
             Assert.NotNull(addedModel);
             Assert.Equal(testModel.Name, addedModel.Name);
         }
@@ -193,6 +182,19 @@ namespace NullPointer.AspNetCore.Rest.Tests
             Assert.Equal(newModelName, updatedModel.Name);
         }
 
+        [Fact]
+        public void CheckIfDeleteReturnsValidStatusCode()
+        {
+            ClassForRestIntegrationTest testModel = new ClassForRestIntegrationTest
+            {
+                Name = "TestName"
+            };
+            HttpResponseMessage addResponse = DoAddAsync(testModel).Result;
+            ClassForRestIntegrationTest addedModel = addResponse.Content.ReadAsJsonAsync<ClassForRestIntegrationTest>().Result;
+            HttpResponseMessage deleteResponse = DoDeleteAsync(addedModel).Result;
+            Assert.Equal(HttpStatusCode.OK, deleteResponse.StatusCode);
+        }
+
         private Task<HttpResponseMessage> DoGetAllAsync<TModel>()
         {
             Type modelType = typeof(TModel);
@@ -234,13 +236,7 @@ namespace NullPointer.AspNetCore.Rest.Tests
             StringContent requestContent = new StringContent(
                 JsonConvert.SerializeObject(obj)
             );
-            HttpRequestMessage request = new HttpRequestMessage
-            {
-                Content = requestContent,
-                Method = HttpMethod.Delete,
-                RequestUri = new Uri(requestUrl)
-            };
-            return _testContext.Client.SendAsync(request);
+            return _testContext.Client.DeleteAsync(requestUrl, requestContent);
         }
 
         private readonly RestIntegrationTestContext _testContext = new RestIntegrationTestContext();
