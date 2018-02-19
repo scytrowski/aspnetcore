@@ -144,15 +144,15 @@ namespace NullPointer.AspNetCore.Rest.Tests
 
         private void PrepareHttpContext()
         {
-            MemoryStream requestBodyStream = new MemoryStream();
-            
-            using (StreamWriter writer = new StreamWriter(requestBodyStream, Encoding.UTF8, 1024, true))
-                writer.Write(JsonConvert.SerializeObject(new ClassForRestRouterTest()));
-
             Mock<HttpRequest> requestMock = new Mock<HttpRequest>();
-            requestMock.Setup(r => r.Body).Returns(requestBodyStream);
+            requestMock.Setup(r => r.Body).Returns(new MemoryStream(
+                Encoding.UTF8.GetBytes(
+                    JsonConvert.SerializeObject(new ClassForRestRouterTest())
+                )
+            ));
             HttpRequest request = requestMock.Object;
             _responseMock = new Mock<HttpResponse>();
+            _responseMock.Setup(r => r.Headers).Returns(new HeaderDictionary());
             _responseMock.Setup(r => r.Body).Returns(new MemoryStream());
             _responseMock.SetupSet(r => r.StatusCode = It.IsAny<int>());
             HttpResponse response = _responseMock.Object;

@@ -1,6 +1,7 @@
 using System;
 using System.Net;
 using System.Net.Http;
+using System.Threading.Tasks;
 using Microsoft.AspNetCore.Builder;
 using Microsoft.AspNetCore.Hosting;
 using Microsoft.AspNetCore.Http;
@@ -25,9 +26,10 @@ namespace NullPointer.AspNetCore.Rest.Tests
     {
         public void ConfigureServices(IServiceCollection services)
         {
+            string dbId = Guid.NewGuid().ToString();
             DbContextBuilder contextBuilder = new DbContextBuilder()
                 .WithEntity<ClassForRestIntegrationTest>()
-                .WithOnConfiguring(options => options.UseInMemoryDatabase(Guid.NewGuid().ToString()));
+                .WithOnConfiguring(options => options.UseInMemoryDatabase(dbId));
             services.AddRest(contextBuilder);
         }
 
@@ -57,22 +59,133 @@ namespace NullPointer.AspNetCore.Rest.Tests
         [Fact]
         public void CheckIfGetAllReturnsValidStatusCode()
         {
-            string requestUrl = $"/api/{nameof(ClassForRestIntegrationTest)}";
-            HttpResponseMessage getAllResponse = _testContext.Client.GetAsync(requestUrl).Result;
+            HttpResponseMessage getAllResponse = DoGetAllAsync<ClassForRestIntegrationTest>().Result;
             Assert.Equal(HttpStatusCode.OK, getAllResponse.StatusCode);
+        }
+
+        [Fact]
+        public void CheckIfGetReturnsValidStatusCode()
+        {
+            HttpResponseMessage addResponse = DoAddAsync(new ClassForRestIntegrationTest
+            {
+                Name = "TestName"
+            }).Result;
+            ClassForRestIntegrationTest addedModel = JsonConvert.DeserializeObject<ClassForRestIntegrationTest>(
+                addResponse.Content.ReadAsStringAsync().Result
+            );
+            int addedModelId = addedModel.Id;
+            HttpResponseMessage getResponse = DoGetAsync<ClassForRestIntegrationTest>(addedModelId).Result;
+            Assert.Equal(HttpStatusCode.OK, getResponse.StatusCode);
+        }
+
+        [Fact]
+        public void CheckIfGetReturnsValidModel()
+        {
+            HttpResponseMessage addResponse = DoAddAsync(new ClassForRestIntegrationTest
+            {
+                Name = "TestName"
+            }).Result;
+            ClassForRestIntegrationTest addedModel = JsonConvert.DeserializeObject<ClassForRestIntegrationTest>(
+                addResponse.Content.ReadAsStringAsync().Result
+            );
+            int addedModelId = addedModel.Id;
+            HttpResponseMessage getResponse = DoGetAsync<ClassForRestIntegrationTest>(addedModelId).Result;
+            ClassForRestIntegrationTest getModel = JsonConvert.DeserializeObject<ClassForRestIntegrationTest>(
+                getResponse.Content.ReadAsStringAsync().Result
+            );
+            Assert.Equal(addedModel.Id, getModel.Id);
+            Assert.Equal(addedModel.Name, getModel.Name);
         }
 
         [Fact]
         public void CheckIfAddReturnsValidStatusCode()
         {
-            string requestUrl = $"/api/{nameof(ClassForRestIntegrationTest)}";
-            HttpContent requestContent = new StringContent(
-                JsonConvert.SerializeObject(new ClassForRestIntegrationTest {
-                    Name = "TestObject"
-                })
-            );
-            HttpResponseMessage addResponse = _testContext.Client.PostAsync(requestUrl, requestContent).Result;
+            HttpResponseMessage addResponse = DoAddAsync(new ClassForRestIntegrationTest
+            {
+                Name = "TestName"
+            }).Result;
             Assert.Equal(HttpStatusCode.Created, addResponse.StatusCode);
+        }
+
+        [Fact]
+        public void CheckIfAddReturnsValidLocationHeader()
+        {
+            HttpResponseMessage addResponse = DoAddAsync(new ClassForRestIntegrationTest
+            {
+                Name = "TestName"
+            }).Result;
+            ClassForRestIntegrationTest addedModel = JsonConvert.DeserializeObject<ClassForRestIntegrationTest>(
+                addResponse.Content.ReadAsStringAsync().Result
+            );
+            int addedModelId = addedModel.Id;
+            string addResponseLocation = addResponse.Headers.Location.ToString();
+            string expectedLocation = $"/api/{nameof(ClassForRestIntegrationTest)}/{addedModelId}";
+            Assert.Equal(expectedLocation, addResponseLocation);
+        }
+
+        [Fact]
+        public void CheckIfAddReturnsValidModel()
+        {
+            ClassForRestIntegrationTest testModel = new ClassForRestIntegrationTest
+            {
+                Name = "TestName"
+            };
+            HttpResponseMessage addResponse = DoAddAsync(testModel).Result;
+            ClassForRestIntegrationTest addedModel = JsonConvert.DeserializeObject<ClassForRestIntegrationTest>(
+                addResponse.Content.ReadAsStringAsync().Result
+            );
+            Assert.NotNull(addedModel);
+            Assert.Equal(testModel.Name, addedModel.Name);
+        }
+
+        private Task<HttpResponseMessage> DoGetAllAsync<TModel>()
+        {
+            Type modelType = typeof(TModel);
+            string requestUrl = $"/api/{modelType.Name}";
+            return _testContext.Client.GetAsync(requestUrl);
+        }
+
+        private Task<HttpResponseMessage> DoGetAsync<TModel>(int id)
+        {
+            Type modelType = typeof(TModel);
+            string requestUrl = $"/api/{modelType.Name}/{id}";
+            return _testContext.Client.GetAsync(requestUrl);
+        }
+
+        private Task<HttpResponseMessage> DoAddAsync<TModel>(TModel obj)
+        {
+            Type modelType = typeof(TModel);
+            string requestUrl = $"/api/{modelType.Name}";
+            StringContent requestContent = new StringContent(
+                JsonConvert.SerializeObject(obj)
+            );
+            return _testContext.Client.PostAsync(requestUrl, requestContent);
+        }
+
+        private Task<HttpResponseMessage> DoUpdateAsync<TModel>(TModel obj)
+        {
+            Type modelType = typeof(TModel);
+            string requestUrl = $"/api/{modelType.Name}";
+            StringContent requestContent = new StringContent(
+                JsonConvert.SerializeObject(obj)
+            );
+            return _testContext.Client.PutAsync(requestUrl, requestContent);
+        }
+
+        private Task<HttpResponseMessage> DoDeleteAsync<TModel>(TModel obj)
+        {
+            Type modelType = typeof(TModel);
+            string requestUrl = $"/api/{modelType.Name}";
+            StringContent requestContent = new StringContent(
+                JsonConvert.SerializeObject(obj)
+            );
+            HttpRequestMessage request = new HttpRequestMessage
+            {
+                Content = requestContent,
+                Method = HttpMethod.Delete,
+                RequestUri = new Uri(requestUrl)
+            };
+            return _testContext.Client.SendAsync(request);
         }
 
         private readonly RestIntegrationTestContext _testContext = new RestIntegrationTestContext();

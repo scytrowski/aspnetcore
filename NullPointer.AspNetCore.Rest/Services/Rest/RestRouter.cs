@@ -94,7 +94,10 @@ namespace NullPointer.AspNetCore.Rest.Services.Rest
                     IDataRepository<TModel> repository = scope.ServiceProvider
                         .GetRequiredService<IDataRepository<TModel>>();
                     await repository.AddAsync(model);
+                    PathString modelPath = _modelApiRoutes[typeof(TModel)].SafeAdd(model.Id.ToString());
                     context.Response.StatusCode = StatusCodes.Status201Created;
+                    context.Response.Headers.Add("location", modelPath.Value);
+                    await context.Response.WriteJsonAsync(model);
                 }
             };
         }
