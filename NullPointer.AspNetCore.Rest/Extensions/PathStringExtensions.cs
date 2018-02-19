@@ -1,3 +1,4 @@
+using System;
 using Microsoft.AspNetCore.Http;
 
 namespace NullPointer.AspNetCore.Rest.Extensions
@@ -10,6 +11,16 @@ namespace NullPointer.AspNetCore.Rest.Extensions
                 newSegmentString = $"/{newSegmentString}";
             
             return path.Add(newSegmentString);
+        }
+
+        public static string[] GetSegments(this PathString path)
+        {
+            if (!path.HasValue)
+                return Array.Empty<string>();
+
+            string pathStringRepr = path.Value;
+            pathStringRepr = pathStringRepr.Trim('/');
+            return pathStringRepr.Split('/', StringSplitOptions.RemoveEmptyEntries);
         }
     }
 }

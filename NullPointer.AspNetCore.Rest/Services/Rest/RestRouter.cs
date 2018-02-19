@@ -1,5 +1,6 @@
 using System;
 using System.Collections.Generic;
+using System.Linq;
 using System.Threading.Tasks;
 using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Routing;
@@ -53,6 +54,35 @@ namespace NullPointer.AspNetCore.Rest.Services.Rest
             };
         }
 
+        public RequestDelegate CreateGetHandler<TModel>(int? id) where TModel : RestModel
+        {
+            return async context =>
+            {
+                if (id == null)
+                {
+                    context.Response.StatusCode = StatusCodes.Status400BadRequest;
+                    return;
+                }
+
+                using (IServiceScope scope = ScopeFactory.CreateScope())
+                {
+                    IDataRepository<TModel> repository = scope.ServiceProvider
+                        .GetRequiredService<IDataRepository<TModel>>();
+                    TModel model = await repository.GetAsync(id.Value);
+
+                    if (model != null)
+                    {
+                        context.Response.StatusCode = StatusCodes.Status200OK;
+                        await context.Response.WriteJsonAsync(model);
+                    }
+                    else
+                    {
+                        context.Response.StatusCode = StatusCodes.Status404NotFound;
+                    }
+                }
+            };
+        }
+
         public RequestDelegate CreateAddHandler<TModel>() where TModel : RestModel
         {
             return async context =>
@@ -101,15 +131,28 @@ namespace NullPointer.AspNetCore.Rest.Services.Rest
             };
         }
 
-        private RequestDelegate CreateRequestHandler(string requestMethod, Type requestModelType)
+        private RequestDelegate CreateRequestHandler(string requestMethod, Type requestModelType, bool hasIdSegment, int? id)
         {
             if (HttpMethods.IsGet(requestMethod))
             {
-                return GetType().GetMethod(nameof(CreateGetAllHandler))
-                    .MakeGenericMethod(requestModelType)
-                    .Invoke(this, new object[] {}) as RequestDelegate;
+                if (hasIdSegment)
+                {
+                    return GetType().GetMethod(nameof(CreateGetHandler))
+                        .MakeGenericMethod(requestModelType)
+                        .Invoke(this, new object[] { id }) as RequestDelegate;
+                }
+                else
+                {
+                    return GetType().GetMethod(nameof(CreateGetAllHandler))
+                        .MakeGenericMethod(requestModelType)
+                        .Invoke(this, new object[] {}) as RequestDelegate;
+                }
             }
-            else if (HttpMethods.IsPost(requestMethod))
+
+            if (hasIdSegment)
+                return null;
+
+            if (HttpMethods.IsPost(requestMethod))
             {
                 return GetType().GetMethod(nameof(CreateAddHandler))
                     .MakeGenericMethod(requestModelType)
@@ -153,7 +196,25 @@ namespace NullPointer.AspNetCore.Rest.Services.Rest
             if (requestModelType == null)
                 return;
 
-            context.Handler = CreateRequestHandler(requestMethod, requestModelType);
+            PathString modelApiPath = _modelApiRoutes[requestModelType];
+            string[] requestPathSegments = requestPath.GetSegments();
+            int segmentsCountDiff = requestPathSegments.Length - modelApiPath.GetSegments().Length;
+            bool hasIdSegment;
+            int? idNullable = null;
+
+            if (segmentsCountDiff == 0)
+                hasIdSegment = false;
+            else if (segmentsCountDiff == 1)
+            {
+                hasIdSegment = true;
+
+                if (int.TryParse(requestPathSegments.Last(), out int id))
+                    idNullable = id;
+            }
+            else
+                return;
+
+            context.Handler = CreateRequestHandler(requestMethod, requestModelType, hasIdSegment, idNullable);
         }
 
         private void ProvideDefaultConfiguration()

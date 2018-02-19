@@ -5,6 +5,7 @@ using System.Text;
 using System.Threading;
 using System.Threading.Tasks;
 using Microsoft.AspNetCore.Http;
+using Microsoft.AspNetCore.Routing;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
 using Moq;
@@ -41,6 +42,23 @@ namespace NullPointer.AspNetCore.Rest.Tests
         {
             RequestDelegate getAllHandler = _testRouter.CreateGetAllHandler<ClassForRestRouterTest>();
             getAllHandler.Invoke(_testContext).Wait();
+            _responseMock.VerifySet(r => r.StatusCode = StatusCodes.Status200OK);
+        }
+
+        [Fact]
+        public void CheckIfGetAsyncInvokedInGetHandler()
+        {
+            int testId = 5;
+            RequestDelegate getHandler = _testRouter.CreateGetHandler<ClassForRestRouterTest>(testId);
+            getHandler.Invoke(_testContext).Wait();
+            _repositoryMock.Verify(r => r.GetAsync(testId));
+        }
+
+        [Fact]
+        public void CheckIfGetHandlerSetsValidStatusCode()
+        {
+            RequestDelegate getHandler = _testRouter.CreateGetHandler<ClassForRestRouterTest>(5);
+            getHandler.Invoke(_testContext).Wait();
             _responseMock.VerifySet(r => r.StatusCode = StatusCodes.Status200OK);
         }
 
@@ -100,6 +118,8 @@ namespace NullPointer.AspNetCore.Rest.Tests
             IConfiguration configuration = configurationMock.Object;
             _repositoryMock.Setup(r => r.GetAllAsync())
                 .Returns(Task.FromResult(Enumerable.Empty<ClassForRestRouterTest>()));
+            _repositoryMock.Setup(r => r.GetAsync(It.IsAny<int>()))
+                .Returns(Task.FromResult(new ClassForRestRouterTest()));
             _repositoryMock.Setup(r => r.AddAsync(It.IsAny<ClassForRestRouterTest>()))
                 .Returns(Task.CompletedTask);
             _repositoryMock.Setup(r => r.UpdateAsync(It.IsAny<ClassForRestRouterTest>()))
