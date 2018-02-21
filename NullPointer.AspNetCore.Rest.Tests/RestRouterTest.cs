@@ -13,6 +13,7 @@ using Newtonsoft.Json;
 using NullPointer.AspNetCore.Rest.Models;
 using NullPointer.AspNetCore.Rest.Services.Repositories;
 using NullPointer.AspNetCore.Rest.Services.Rest;
+using NullPointer.AspNetCore.Rest.Attributes;
 using Xunit;
 
 namespace NullPointer.AspNetCore.Rest.Tests

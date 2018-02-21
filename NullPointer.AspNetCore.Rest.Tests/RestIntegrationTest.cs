@@ -11,6 +11,7 @@ using Microsoft.Extensions.DependencyInjection;
 using Newtonsoft.Json;
 using NullPointer.AspNetCore.Entity.Builders;
 using NullPointer.AspNetCore.Entity.Services.Database;
+using NullPointer.AspNetCore.Rest.Attributes;
 using NullPointer.AspNetCore.Rest.Extensions;
 using NullPointer.AspNetCore.Rest.Models;
 using NullPointer.AspNetCore.Rest.Tests.Extensions;
@@ -23,6 +24,31 @@ namespace NullPointer.AspNetCore.Rest.Tests
         public string Name { get; set; }
     }
 
+    [RestDisableGetAll]
+    class ClassWithDisabledGetAllForRestIntegrationTest : RestModel
+    {
+    }
+
+    [RestDisableGet]
+    class ClassWithDisabledGetForRestIntegrationTest : RestModel
+    {
+    }
+
+    [RestDisableAdd]
+    class ClassWithDisabledAddForRestIntegrationTest : RestModel
+    {
+    }
+
+    [RestDisableUpdate]
+    class ClassWithDisabledUpdateForRestIntegrationTest : RestModel
+    {
+    }
+
+    [RestDisableDelete]
+    class ClassWithDisabledDeleteForRestIntegrationTest : RestModel
+    {
+    }
+
     class RestIntegrationTestStartup
     {
         public void ConfigureServices(IServiceCollection services)
@@ -30,6 +56,11 @@ namespace NullPointer.AspNetCore.Rest.Tests
             string dbId = Guid.NewGuid().ToString();
             DbContextBuilder contextBuilder = new DbContextBuilder()
                 .WithEntity<ClassForRestIntegrationTest>()
+                .WithEntity<ClassWithDisabledGetAllForRestIntegrationTest>()
+                .WithEntity<ClassWithDisabledGetForRestIntegrationTest>()
+                .WithEntity<ClassWithDisabledAddForRestIntegrationTest>()
+                .WithEntity<ClassWithDisabledUpdateForRestIntegrationTest>()
+                .WithEntity<ClassWithDisabledDeleteForRestIntegrationTest>()
                 .WithOnConfiguring(options => options.UseInMemoryDatabase(dbId));
             services.AddRest(contextBuilder);
         }
@@ -64,6 +95,13 @@ namespace NullPointer.AspNetCore.Rest.Tests
         }
 
         [Fact]
+        public void CheckIfGetAllReturnsValidStatusCodeOnDisabledEntity()
+        {
+            HttpResponseMessage getAllResponse = DoGetAllAsync<ClassWithDisabledGetAllForRestIntegrationTest>().Result;
+            Assert.Equal(HttpStatusCode.MethodNotAllowed, getAllResponse.StatusCode);
+        }
+
+        [Fact]
         public void CheckIfGetReturnsValidStatusCode()
         {
             HttpResponseMessage addResponse = DoAddAsync(new ClassForRestIntegrationTest
@@ -81,6 +119,13 @@ namespace NullPointer.AspNetCore.Rest.Tests
         {
             HttpResponseMessage getResponse = DoGetAsync<ClassForRestIntegrationTest>(1).Result;
             Assert.Equal(HttpStatusCode.NotFound, getResponse.StatusCode);
+        }
+
+        [Fact]
+        public void CheckIfGetReturnsValidStatusCodeOnDisabledEntity()
+        {
+            HttpResponseMessage getResponse = DoGetAsync<ClassWithDisabledGetForRestIntegrationTest>(1).Result;
+            Assert.Equal(HttpStatusCode.MethodNotAllowed, getResponse.StatusCode);
         }
 
         [Fact]
@@ -106,6 +151,13 @@ namespace NullPointer.AspNetCore.Rest.Tests
                 Name = "TestName"
             }).Result;
             Assert.Equal(HttpStatusCode.Created, addResponse.StatusCode);
+        }
+
+        [Fact]
+        public void CheckIfAddReturnsValidStatusCodeOnDisabledEntity()
+        {
+            HttpResponseMessage addResponse = DoAddAsync(new ClassWithDisabledAddForRestIntegrationTest()).Result;
+            Assert.Equal(HttpStatusCode.MethodNotAllowed, addResponse.StatusCode);
         }
 
         [Fact]
@@ -147,6 +199,13 @@ namespace NullPointer.AspNetCore.Rest.Tests
             addedModel.Name = "TestName2";
             HttpResponseMessage updateResponse = DoUpdateAsync(addedModel).Result;
             Assert.Equal(HttpStatusCode.OK, updateResponse.StatusCode);
+        }
+
+        [Fact]
+        public void CheckIfUpdateReturnsValidStatusCodeOnDisabledEntity()
+        {
+            HttpResponseMessage updateResponse = DoUpdateAsync(new ClassWithDisabledUpdateForRestIntegrationTest()).Result;
+            Assert.Equal(HttpStatusCode.MethodNotAllowed, updateResponse.StatusCode);
         }
 
         [Fact]
@@ -193,6 +252,13 @@ namespace NullPointer.AspNetCore.Rest.Tests
             ClassForRestIntegrationTest addedModel = addResponse.Content.ReadAsJsonAsync<ClassForRestIntegrationTest>().Result;
             HttpResponseMessage deleteResponse = DoDeleteAsync(addedModel).Result;
             Assert.Equal(HttpStatusCode.OK, deleteResponse.StatusCode);
+        }
+
+        [Fact]
+        public void CheckIfDeleteReturnsValidStatusCodeOnDisabledEntity()
+        {
+            HttpResponseMessage deleteResponse = DoDeleteAsync(new ClassWithDisabledDeleteForRestIntegrationTest()).Result;
+            Assert.Equal(HttpStatusCode.MethodNotAllowed, deleteResponse.StatusCode);
         }
 
         private Task<HttpResponseMessage> DoGetAllAsync<TModel>()

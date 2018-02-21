@@ -35,7 +35,7 @@ namespace NullPointer.AspNetCore.Rest.Extensions
 
             RestModelOptionsBuilder options = new RestModelOptionsBuilder();
 
-            if (type.GetCustomAttribute<RestDisableGetAllAtribute>() != null)
+            if (type.GetCustomAttribute<RestDisableGetAllAttribute>() != null)
                 options = options.WithDisabledGetAll();
 
             if (type.GetCustomAttribute<RestDisableGetAttribute>() != null)
