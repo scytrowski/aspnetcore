@@ -15,6 +15,7 @@ using NullPointer.AspNetCore.Rest.Services.Repositories;
 using NullPointer.AspNetCore.Rest.Services.Rest;
 using NullPointer.AspNetCore.Rest.Attributes;
 using Xunit;
+using Microsoft.Extensions.Logging;
 
 namespace NullPointer.AspNetCore.Rest.Tests
 {
@@ -130,9 +131,13 @@ namespace NullPointer.AspNetCore.Rest.Tests
             IDataRepository<ClassForRestRouterTest> repository = _repositoryMock.Object;
             IRestRegistry restRegistry = new RestRegistry();
             restRegistry.Register(new RestRegistryEntry(typeof(ClassForRestRouterTest), RestAllowedOperations.All));
+            Mock<ILogger<RestRouter>> loggerMock = new Mock<ILogger<RestRouter>>();
+            ILogger<RestRouter> logger = loggerMock.Object;
             Mock<IServiceProvider> serviceProviderMock = new Mock<IServiceProvider>();
             serviceProviderMock.Setup(p => p.GetService(typeof(IDataRepository<ClassForRestRouterTest>)))
                 .Returns(repository);
+            serviceProviderMock.Setup(p => p.GetService(typeof(ILogger<RestRouter>)))
+                .Returns(logger);
             IServiceProvider serviceProvider = serviceProviderMock.Object;
             Mock<IServiceScope> scopeMock = new Mock<IServiceScope>();
             scopeMock.Setup(s => s.ServiceProvider).Returns(serviceProvider);

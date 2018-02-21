@@ -6,6 +6,7 @@ using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Routing;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
+using Microsoft.Extensions.Logging;
 using NullPointer.AspNetCore.Rest.Extensions;
 using NullPointer.AspNetCore.Rest.Models;
 using NullPointer.AspNetCore.Rest.Services.Repositories;
@@ -41,44 +42,40 @@ namespace NullPointer.AspNetCore.Rest.Services.Rest
 
         public RequestDelegate CreateGetAllHandler<TModel>() where TModel : RestModel
         {
-            return async context => 
+            return context => 
             {
-                if (!IsOperationAllowed<TModel>(RestAllowedOperations.GetAll))
+                return DoInScopeAsync<TModel>(async (logger, repository) =>
                 {
-                    context.Response.StatusCode = StatusCodes.Status405MethodNotAllowed;
-                    return;
-                }
+                    if (!IsOperationAllowed<TModel>(RestAllowedOperations.GetAll))
+                    {
+                        context.Response.StatusCode = StatusCodes.Status405MethodNotAllowed;
+                        return;
+                    }
 
-                using (IServiceScope scope = ScopeFactory.CreateScope())
-                {
-                    IDataRepository<TModel> repository = scope.ServiceProvider
-                        .GetRequiredService<IDataRepository<TModel>>(); 
                     IEnumerable<TModel> models = await repository.GetAllAsync();
                     context.Response.StatusCode = StatusCodes.Status200OK;
                     await context.Response.WriteJsonAsync(models);
-                }
+                });
             };
         }
 
         public RequestDelegate CreateGetHandler<TModel>(int? id) where TModel : RestModel
         {
-            return async context =>
+            return context =>
             {
-                if (!IsOperationAllowed<TModel>(RestAllowedOperations.Get))
+                return DoInScopeAsync<TModel>(async (Logger, repository) =>
                 {
-                    context.Response.StatusCode = StatusCodes.Status405MethodNotAllowed;
-                    return;
-                } 
-                else if (id == null)
-                {
-                    context.Response.StatusCode = StatusCodes.Status400BadRequest;
-                    return;
-                }
+                    if (!IsOperationAllowed<TModel>(RestAllowedOperations.Get))
+                    {
+                        context.Response.StatusCode = StatusCodes.Status405MethodNotAllowed;
+                        return;
+                    } 
+                    else if (id == null)
+                    {
+                        context.Response.StatusCode = StatusCodes.Status400BadRequest;
+                        return;
+                    }
 
-                using (IServiceScope scope = ScopeFactory.CreateScope())
-                {
-                    IDataRepository<TModel> repository = scope.ServiceProvider
-                        .GetRequiredService<IDataRepository<TModel>>();
                     TModel model = await repository.GetAsync(id.Value);
 
                     if (model != null)
@@ -90,79 +87,70 @@ namespace NullPointer.AspNetCore.Rest.Services.Rest
                     {
                         context.Response.StatusCode = StatusCodes.Status404NotFound;
                     }
-                }
+                });
             };
         }
 
         public RequestDelegate CreateAddHandler<TModel>() where TModel : RestModel
         {
-            return async context =>
+            return context =>
             {
-                if (!IsOperationAllowed<TModel>(RestAllowedOperations.Add))
+                return DoInScopeAsync<TModel>(async (logger, repository) =>
                 {
-                    context.Response.StatusCode = StatusCodes.Status405MethodNotAllowed;
-                    return;
-                }
+                    if (!IsOperationAllowed<TModel>(RestAllowedOperations.Add))
+                    {
+                        context.Response.StatusCode = StatusCodes.Status405MethodNotAllowed;
+                        return;
+                    }
 
-                TModel model = await context.Request.ReadJsonAsync<TModel>();
-
-                using (IServiceScope scope = ScopeFactory.CreateScope())
-                {
-                    IDataRepository<TModel> repository = scope.ServiceProvider
-                        .GetRequiredService<IDataRepository<TModel>>();
+                    TModel model = await context.Request.ReadJsonAsync<TModel>();
                     await repository.AddAsync(model);
                     string modelLocation = GetModelLocation(model);
                     context.Response.StatusCode = StatusCodes.Status201Created;
                     context.Response.Headers.Add("location", modelLocation);
                     await context.Response.WriteJsonAsync(model);
-                }
+                });
             };
         }
 
         public RequestDelegate CreateUpdateHandler<TModel>() where TModel : RestModel
         {
-            return async context =>
+            return context =>
             {
-                if (!IsOperationAllowed<TModel>(RestAllowedOperations.Update))
+                return DoInScopeAsync<TModel>(async (logger, repository) =>
                 {
-                    context.Response.StatusCode = StatusCodes.Status405MethodNotAllowed;
-                    return;
-                }
+                    if (!IsOperationAllowed<TModel>(RestAllowedOperations.Update))
+                    {
+                        context.Response.StatusCode = StatusCodes.Status405MethodNotAllowed;
+                        return;
+                    }
 
-                TModel model = await context.Request.ReadJsonAsync<TModel>();
-
-                using (IServiceScope scope = ScopeFactory.CreateScope())
-                {
-                    IDataRepository<TModel> repository = scope.ServiceProvider
-                        .GetRequiredService<IDataRepository<TModel>>();
+                    TModel model = await context.Request.ReadJsonAsync<TModel>();
                     await repository.UpdateAsync(model);
                     string modelLocation = GetModelLocation(model);
                     context.Response.StatusCode = StatusCodes.Status200OK;
                     context.Response.Headers.Add("location", modelLocation);
                     await context.Response.WriteJsonAsync(model);
-                }
+                });
             };
         }
 
         public RequestDelegate CreateDeleteHandler<TModel>() where TModel : RestModel
         {
-            return async context =>
+            return context =>
             {
-                if (!IsOperationAllowed<TModel>(RestAllowedOperations.Delete))
+                return DoInScopeAsync<TModel>(async (logger, repository) =>
                 {
-                    context.Response.StatusCode = StatusCodes.Status405MethodNotAllowed;
-                    return;
-                }
+                    if (!IsOperationAllowed<TModel>(RestAllowedOperations.Delete))
+                    {
+                        context.Response.StatusCode = StatusCodes.Status405MethodNotAllowed;
+                        return;
+                    }
 
-                TModel model = await context.Request.ReadJsonAsync<TModel>();
-
-                using (IServiceScope scope = ScopeFactory.CreateScope())
-                {
-                    IDataRepository<TModel> repository = scope.ServiceProvider
-                        .GetRequiredService<IDataRepository<TModel>>();
+                    TModel model = await context.Request.ReadJsonAsync<TModel>();
                     await repository.DeleteAsync(model);
                     context.Response.StatusCode = StatusCodes.Status200OK;
-                } 
+                });
             };
         }
 
@@ -271,6 +259,20 @@ namespace NullPointer.AspNetCore.Rest.Services.Rest
             
             PathString modelPath = _modelApiRoutes[modelType].SafeAdd(model.Id.ToString());
             return modelPath.Value;
+        }
+
+        private Task DoInScopeAsync<TModel>(Func<ILogger, IDataRepository<TModel>, Task> action) where TModel : RestModel
+        {
+            return Task.Run(() =>
+            {
+                using (IServiceScope scope = ScopeFactory.CreateScope())
+                {
+                    ILogger<RestRouter> logger = scope.ServiceProvider.GetRequiredService<ILogger<RestRouter>>();
+                    IDataRepository<TModel> repository = scope.ServiceProvider
+                        .GetRequiredService<IDataRepository<TModel>>();
+                    action?.Invoke(logger, repository).Wait();
+                }
+            });
         }
 
         private void ProvideDefaultConfiguration()
