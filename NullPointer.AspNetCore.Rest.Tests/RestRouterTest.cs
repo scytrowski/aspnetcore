@@ -27,8 +27,7 @@ namespace NullPointer.AspNetCore.Rest.Tests
     {
         public RestRouterTest()
         {
-            PrepareRouter();
-            PrepareHttpContext();
+            Prepare();
         }
 
         [Fact]
@@ -112,12 +111,28 @@ namespace NullPointer.AspNetCore.Rest.Tests
             _responseMock.VerifySet(r => r.StatusCode = StatusCodes.Status200OK);
         }
 
-        private void PrepareRouter()
+        private void Prepare()
         {
-            Mock<IConfiguration> configurationMock = new Mock<IConfiguration>();
-            configurationMock.Setup(c => c.GetSection("restApi"))
+            PrepareConfiguration();
+            PrepareRepository();
+            PrepareLogger();
+            PrepareServiceProvider();
+            PrepareScope();
+            PrepareScopeFactory();
+            PrepareRouter();
+            PrepareHttpRequest();
+            PrepareHttpResponse();
+            PrepareHttpContext();
+        }
+
+        private void PrepareConfiguration()
+        {
+            _configurationMock.Setup(c => c.GetSection("restApi"))
                 .Returns((IConfigurationSection)null);
-            IConfiguration configuration = configurationMock.Object;
+        }
+
+        private void PrepareRepository()
+        {
             _repositoryMock.Setup(r => r.GetAllAsync())
                 .Returns(Task.FromResult(Enumerable.Empty<ClassForRestRouterTest>()));
             _repositoryMock.Setup(r => r.GetAsync(It.IsAny<int>()))
@@ -128,39 +143,64 @@ namespace NullPointer.AspNetCore.Rest.Tests
                 .Returns(Task.CompletedTask);
             _repositoryMock.Setup(r => r.DeleteAsync(It.IsAny<ClassForRestRouterTest>()))
                 .Returns(Task.CompletedTask);
+        }
+
+        private void PrepareLogger()
+        {
+        }
+
+        private void PrepareServiceProvider()
+        {
+            ILogger<RestRouter> logger = _loggerMock.Object;
             IDataRepository<ClassForRestRouterTest> repository = _repositoryMock.Object;
+            _serviceProviderMock.Setup(p => p.GetService(typeof(ILogger<RestRouter>)))
+                .Returns(logger);
+            _serviceProviderMock.Setup(p => p.GetService(typeof(IDataRepository<ClassForRestRouterTest>)))
+                .Returns(repository);
+        }
+
+        private void PrepareScope()
+        {
+            IServiceProvider serviceProvider = _serviceProviderMock.Object;
+            _scopeMock.Setup(s => s.ServiceProvider)
+                .Returns(serviceProvider);
+        }
+
+        private void PrepareScopeFactory()
+        {
+            IServiceScope scope = _scopeMock.Object;
+            _scopeFactoryMock.Setup(f => f.CreateScope())
+                .Returns(scope);
+        }
+
+        private void PrepareRouter()
+        {
             IRestRegistry restRegistry = new RestRegistry();
             restRegistry.Register(new RestRegistryEntry(typeof(ClassForRestRouterTest), RestAllowedOperations.All));
-            Mock<ILogger<RestRouter>> loggerMock = new Mock<ILogger<RestRouter>>();
-            ILogger<RestRouter> logger = loggerMock.Object;
-            Mock<IServiceProvider> serviceProviderMock = new Mock<IServiceProvider>();
-            serviceProviderMock.Setup(p => p.GetService(typeof(IDataRepository<ClassForRestRouterTest>)))
-                .Returns(repository);
-            serviceProviderMock.Setup(p => p.GetService(typeof(ILogger<RestRouter>)))
-                .Returns(logger);
-            IServiceProvider serviceProvider = serviceProviderMock.Object;
-            Mock<IServiceScope> scopeMock = new Mock<IServiceScope>();
-            scopeMock.Setup(s => s.ServiceProvider).Returns(serviceProvider);
-            IServiceScope scope = scopeMock.Object;
-            Mock<IServiceScopeFactory> scopeFactoryMock = new Mock<IServiceScopeFactory>();
-            scopeFactoryMock.Setup(f => f.CreateScope()).Returns(scope);
-            IServiceScopeFactory scopeFactory = scopeFactoryMock.Object;
+            IConfiguration configuration = _configurationMock.Object;
+            IServiceScopeFactory scopeFactory = _scopeFactoryMock.Object;
             _testRouter = new RestRouter(restRegistry, configuration, scopeFactory);
         }
 
-        private void PrepareHttpContext()
+        private void PrepareHttpRequest()
         {
-            Mock<HttpRequest> requestMock = new Mock<HttpRequest>();
-            requestMock.Setup(r => r.Body).Returns(new MemoryStream(
+            _requestMock.Setup(r => r.Body).Returns(new MemoryStream(
                 Encoding.UTF8.GetBytes(
                     JsonConvert.SerializeObject(new ClassForRestRouterTest())
                 )
             ));
-            HttpRequest request = requestMock.Object;
-            _responseMock = new Mock<HttpResponse>();
+        }
+
+        private void PrepareHttpResponse()
+        {
             _responseMock.Setup(r => r.Headers).Returns(new HeaderDictionary());
             _responseMock.Setup(r => r.Body).Returns(new MemoryStream());
             _responseMock.SetupSet(r => r.StatusCode = It.IsAny<int>());
+        }
+
+        private void PrepareHttpContext()
+        {
+            HttpRequest request = _requestMock.Object;
             HttpResponse response = _responseMock.Object;
             Mock<HttpContext> contextMock = new Mock<HttpContext>();
             contextMock.Setup(c => c.Request).Returns(request);
@@ -168,8 +208,14 @@ namespace NullPointer.AspNetCore.Rest.Tests
             _testContext = contextMock.Object;
         }
 
+        private Mock<IConfiguration> _configurationMock = new Mock<IConfiguration>();
         private Mock<IDataRepository<ClassForRestRouterTest>> _repositoryMock = new Mock<IDataRepository<ClassForRestRouterTest>>();
+        private Mock<ILogger<RestRouter>> _loggerMock = new Mock<ILogger<RestRouter>>();
+        private Mock<IServiceProvider> _serviceProviderMock = new Mock<IServiceProvider>();
+        private Mock<IServiceScope> _scopeMock = new Mock<IServiceScope>();
+        private Mock<IServiceScopeFactory> _scopeFactoryMock = new Mock<IServiceScopeFactory>();
         private RestRouter _testRouter;
+        private Mock<HttpRequest> _requestMock = new Mock<HttpRequest>();
         private Mock<HttpResponse> _responseMock = new Mock<HttpResponse>();
         private HttpContext _testContext;
     }
