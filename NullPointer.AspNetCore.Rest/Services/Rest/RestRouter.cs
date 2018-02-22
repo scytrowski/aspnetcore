@@ -15,11 +15,12 @@ namespace NullPointer.AspNetCore.Rest.Services.Rest
 {
     public class RestRouter : IRestRouter
     {
-        public RestRouter(IRestRegistry restRegistry, IConfiguration configuration, IServiceScopeFactory scopeFactory)
+        public RestRouter(IRestRegistry restRegistry, IConfiguration configuration, IServiceScopeFactory scopeFactory, ILogger<RestRouter> logger)
         {
             RestRegistry = restRegistry;
             Configuration = configuration;
             ScopeFactory = scopeFactory;
+            Logger = logger;
             InitializeConfiguration();
         }
 
@@ -44,17 +45,22 @@ namespace NullPointer.AspNetCore.Rest.Services.Rest
         {
             return context => 
             {
-                return DoInScopeAsync<TModel>(async (logger, repository) =>
+                return DoInScopeAsync<TModel>(async repository =>
                 {
+                    Logger.LogDebug(RestLoggingEvents.GET_ALL_REQUEST, "Requested GET ALL method on '{MODEL}' model", typeof(TModel).Name);
+
                     if (!IsOperationAllowed<TModel>(RestAllowedOperations.GetAll))
                     {
                         context.Response.StatusCode = StatusCodes.Status405MethodNotAllowed;
+                        Logger.LogDebug(RestLoggingEvents.DISABLED_METHOD_REQUEST, "Requested disabled GET ALL method on '{MODEL}' model", typeof(TModel).Name);
                         return;
                     }
 
                     IEnumerable<TModel> models = await repository.GetAllAsync();
                     context.Response.StatusCode = StatusCodes.Status200OK;
                     await context.Response.WriteJsonAsync(models);
+
+
                 });
             };
         }
@@ -63,11 +69,14 @@ namespace NullPointer.AspNetCore.Rest.Services.Rest
         {
             return context =>
             {
-                return DoInScopeAsync<TModel>(async (Logger, repository) =>
+                return DoInScopeAsync<TModel>(async repository =>
                 {
+                    Logger.LogDebug(RestLoggingEvents.GET_REQUEST, "Requested GET method on '{MODEL}' model", typeof(TModel).Name);
+
                     if (!IsOperationAllowed<TModel>(RestAllowedOperations.Get))
                     {
                         context.Response.StatusCode = StatusCodes.Status405MethodNotAllowed;
+                        Logger.LogDebug(RestLoggingEvents.DISABLED_METHOD_REQUEST, "Requested disabled GET method on '{MODEL}' model", typeof(TModel).Name);
                         return;
                     } 
                     else if (id == null)
@@ -95,11 +104,14 @@ namespace NullPointer.AspNetCore.Rest.Services.Rest
         {
             return context =>
             {
-                return DoInScopeAsync<TModel>(async (logger, repository) =>
+                return DoInScopeAsync<TModel>(async repository =>
                 {
+                    Logger.LogDebug(RestLoggingEvents.ADD_REQUEST, "Requested ADD method on '{MODEL}' model", typeof(TModel).Name);
+
                     if (!IsOperationAllowed<TModel>(RestAllowedOperations.Add))
                     {
                         context.Response.StatusCode = StatusCodes.Status405MethodNotAllowed;
+                        Logger.LogDebug(RestLoggingEvents.DISABLED_METHOD_REQUEST, "Requested disabled ADD method on '{MODEL}' model", typeof(TModel).Name);
                         return;
                     }
 
@@ -117,11 +129,14 @@ namespace NullPointer.AspNetCore.Rest.Services.Rest
         {
             return context =>
             {
-                return DoInScopeAsync<TModel>(async (logger, repository) =>
+                return DoInScopeAsync<TModel>(async repository =>
                 {
+                    Logger.LogDebug(RestLoggingEvents.UPDATE_REQUEST, "Requested UPDATE method on '{MODEL}' model", typeof(TModel).Name);
+
                     if (!IsOperationAllowed<TModel>(RestAllowedOperations.Update))
                     {
                         context.Response.StatusCode = StatusCodes.Status405MethodNotAllowed;
+                        Logger.LogDebug(RestLoggingEvents.DISABLED_METHOD_REQUEST, "Requested disabled UPDATE method on '{MODEL}' model", typeof(TModel).Name);
                         return;
                     }
 
@@ -139,11 +154,14 @@ namespace NullPointer.AspNetCore.Rest.Services.Rest
         {
             return context =>
             {
-                return DoInScopeAsync<TModel>(async (logger, repository) =>
+                return DoInScopeAsync<TModel>(async repository =>
                 {
+                    Logger.LogDebug(RestLoggingEvents.DELETE_REQUEST, "Requested DELETE method on '{MODEL}' model", typeof(TModel).Name);
+
                     if (!IsOperationAllowed<TModel>(RestAllowedOperations.Delete))
                     {
                         context.Response.StatusCode = StatusCodes.Status405MethodNotAllowed;
+                        Logger.LogDebug(RestLoggingEvents.DISABLED_METHOD_REQUEST, "Requested disabled DELETE method on '{MODEL}' model", typeof(TModel).Name);
                         return;
                     }
 
@@ -242,12 +260,8 @@ namespace NullPointer.AspNetCore.Rest.Services.Rest
 
         private bool IsOperationAllowed<TModel>(RestAllowedOperations operation) where TModel: RestModel
         {
-            Type modelType = typeof(TModel);
-
-            if (!_modelAllowedOperations.ContainsKey(modelType))
-                throw new InvalidOperationException("Provided model type must be registered");
-
-            return (_modelAllowedOperations[modelType] & operation) == operation;
+            RestAllowedOperations modelAllowedOperations = RestRegistry.GetAllowedOperations<TModel>();
+            return (modelAllowedOperations & operation) == operation;
         }
 
         private string GetModelLocation<TModel>(TModel model) where TModel : RestModel
@@ -261,16 +275,22 @@ namespace NullPointer.AspNetCore.Rest.Services.Rest
             return modelPath.Value;
         }
 
-        private Task DoInScopeAsync<TModel>(Func<ILogger, IDataRepository<TModel>, Task> action) where TModel : RestModel
+        private Task DoInScopeAsync<TModel>(Func<IDataRepository<TModel>, Task> action) where TModel : RestModel
         {
             return Task.Run(() =>
             {
-                using (IServiceScope scope = ScopeFactory.CreateScope())
+                try
                 {
-                    ILogger<RestRouter> logger = scope.ServiceProvider.GetRequiredService<ILogger<RestRouter>>();
-                    IDataRepository<TModel> repository = scope.ServiceProvider
-                        .GetRequiredService<IDataRepository<TModel>>();
-                    action?.Invoke(logger, repository).Wait();
+                    using (IServiceScope scope = ScopeFactory.CreateScope())
+                    {
+                        IDataRepository<TModel> repository = scope.ServiceProvider
+                            .GetRequiredService<IDataRepository<TModel>>();
+                        action?.Invoke(repository).Wait();
+                    }
+                }
+                catch (Exception ex)
+                {
+                    Logger.LogError(RestLoggingEvents.SERVER_FAILURE, ex, "An exception has been raised while handling request");
                 }
             });
         }
@@ -293,16 +313,15 @@ namespace NullPointer.AspNetCore.Rest.Services.Rest
             {
                 Type entryType = entry.Type;
                 _modelApiRoutes[entryType] = _apiBasePath.SafeAdd(entryType.Name);
-                _modelAllowedOperations[entryType] = entry.AllowedOperations;
             }
         }
 
         public IRestRegistry RestRegistry { get; }
         public IConfiguration Configuration { get; }
         public IServiceScopeFactory ScopeFactory { get; }
+        public ILogger<RestRouter> Logger { get; }
 
         private PathString _apiBasePath;
         private readonly Dictionary<Type, PathString> _modelApiRoutes = new Dictionary<Type, PathString>();
-        private readonly Dictionary<Type, RestAllowedOperations> _modelAllowedOperations = new Dictionary<Type, RestAllowedOperations>();
     }
 }

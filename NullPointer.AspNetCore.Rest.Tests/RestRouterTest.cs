@@ -16,6 +16,7 @@ using NullPointer.AspNetCore.Rest.Services.Rest;
 using NullPointer.AspNetCore.Rest.Attributes;
 using Xunit;
 using Microsoft.Extensions.Logging;
+using NullPointer.AspNetCore.Rest.Builders;
 
 namespace NullPointer.AspNetCore.Rest.Tests
 {
@@ -47,6 +48,54 @@ namespace NullPointer.AspNetCore.Rest.Tests
         }
 
         [Fact]
+        public void CheckIfGetAllHandlerSetsValidStatusCodeOnDisabled()
+        {
+            _registry.Register(new RestRegistryEntry(
+                typeof(ClassForRestRouterTest),
+                new RestModelOptionsBuilder()
+                    .WithDisabledGetAll()
+                    .AllowedOperations
+            ));
+            RequestDelegate getAllHandler = _testRouter.CreateGetAllHandler<ClassForRestRouterTest>();
+            getAllHandler.Invoke(_testContext).Wait();
+            _responseMock.VerifySet(r => r.StatusCode = StatusCodes.Status405MethodNotAllowed);
+        }
+
+        [Fact]
+        public void CheckIfGetAllLogged()
+        {
+            RequestDelegate getAllHandler = _testRouter.CreateGetAllHandler<ClassForRestRouterTest>();
+            getAllHandler.Invoke(_testContext).Wait();
+            _loggerMock.Verify(l => l.Log<Object>(
+                LogLevel.Debug, 
+                RestLoggingEvents.GET_ALL_REQUEST, 
+                It.IsAny<Object>(),
+                It.IsAny<Exception>(),
+                It.IsAny<Func<Object, Exception, string>>()
+            ), Times.Once);
+        }
+
+        [Fact]
+        public void CheckIfGetAllLoggedOnDisabled()
+        {
+            _registry.Register(new RestRegistryEntry(
+                typeof(ClassForRestRouterTest),
+                new RestModelOptionsBuilder()
+                    .WithDisabledGetAll()
+                    .AllowedOperations
+            ));
+            RequestDelegate getAllHandler = _testRouter.CreateGetAllHandler<ClassForRestRouterTest>();
+            getAllHandler.Invoke(_testContext).Wait();
+            _loggerMock.Verify(l => l.Log<Object>(
+                LogLevel.Debug, 
+                RestLoggingEvents.DISABLED_METHOD_REQUEST, 
+                It.IsAny<Object>(),
+                It.IsAny<Exception>(),
+                It.IsAny<Func<Object, Exception, string>>()
+            ), Times.Once);
+        }
+
+        [Fact]
         public void CheckIfGetAsyncInvokedInGetHandler()
         {
             int testId = 5;
@@ -61,6 +110,54 @@ namespace NullPointer.AspNetCore.Rest.Tests
             RequestDelegate getHandler = _testRouter.CreateGetHandler<ClassForRestRouterTest>(5);
             getHandler.Invoke(_testContext).Wait();
             _responseMock.VerifySet(r => r.StatusCode = StatusCodes.Status200OK);
+        }
+
+        [Fact]
+        public void CheckIfGetHandlerSetsValidCodeOnDisabled()
+        {
+            _registry.Register(new RestRegistryEntry(
+                typeof(ClassForRestRouterTest),
+                new RestModelOptionsBuilder()
+                    .WithDisabledGet()
+                    .AllowedOperations
+            ));
+            RequestDelegate getHandler = _testRouter.CreateGetHandler<ClassForRestRouterTest>(5);
+            getHandler.Invoke(_testContext).Wait();
+            _responseMock.VerifySet(r => r.StatusCode = StatusCodes.Status405MethodNotAllowed);
+        }
+
+        [Fact]
+        public void CheckIfGetLogged()
+        {
+            RequestDelegate getHandler = _testRouter.CreateGetHandler<ClassForRestRouterTest>(5);
+            getHandler.Invoke(_testContext).Wait();
+            _loggerMock.Verify(l => l.Log<Object>(
+                LogLevel.Debug,
+                RestLoggingEvents.GET_REQUEST,
+                It.IsAny<object>(),
+                It.IsAny<Exception>(),
+                It.IsAny<Func<Object, Exception, string>>()
+            ), Times.Once);
+        }
+
+        [Fact]
+        public void CheckIfGetLoggedOnDisabled()
+        {
+            _registry.Register(new RestRegistryEntry(
+                typeof(ClassForRestRouterTest),
+                new RestModelOptionsBuilder()
+                    .WithDisabledGet()
+                    .AllowedOperations
+            ));
+            RequestDelegate getHandler = _testRouter.CreateGetHandler<ClassForRestRouterTest>(5);
+            getHandler.Invoke(_testContext).Wait();   
+            _loggerMock.Verify(l => l.Log<Object>(
+                LogLevel.Debug,
+                RestLoggingEvents.DISABLED_METHOD_REQUEST,
+                It.IsAny<object>(),
+                It.IsAny<Exception>(),
+                It.IsAny<Func<Object, Exception, string>>()
+            ), Times.Once);         
         }
 
         [Fact]
@@ -80,6 +177,54 @@ namespace NullPointer.AspNetCore.Rest.Tests
         }
 
         [Fact]
+        public void CheckIfAddHandlerSetsValidStatusCodeOnDisabled()
+        {
+            _registry.Register(new RestRegistryEntry(
+                typeof(ClassForRestRouterTest),
+                new RestModelOptionsBuilder()
+                    .WithDisabledAdd()
+                    .AllowedOperations
+            ));
+            RequestDelegate addHandler = _testRouter.CreateAddHandler<ClassForRestRouterTest>();
+            addHandler.Invoke(_testContext).Wait();
+            _responseMock.VerifySet(r => r.StatusCode = StatusCodes.Status405MethodNotAllowed);
+        }
+
+        [Fact]
+        public void CheckIfAddLogged()
+        {
+            RequestDelegate addHandler = _testRouter.CreateAddHandler<ClassForRestRouterTest>();
+            addHandler.Invoke(_testContext).Wait();
+            _loggerMock.Verify(l => l.Log<Object>(
+                LogLevel.Debug,
+                RestLoggingEvents.ADD_REQUEST,
+                It.IsAny<object>(),
+                It.IsAny<Exception>(),
+                It.IsAny<Func<Object, Exception, string>>()
+            ), Times.Once);
+        }
+
+        [Fact]
+        public void CheckIfAddLoggedOnDisabled()
+        {
+            _registry.Register(new RestRegistryEntry(
+                typeof(ClassForRestRouterTest),
+                new RestModelOptionsBuilder()
+                    .WithDisabledAdd()
+                    .AllowedOperations
+            ));
+            RequestDelegate addHandler = _testRouter.CreateAddHandler<ClassForRestRouterTest>();
+            addHandler.Invoke(_testContext).Wait();
+            _loggerMock.Verify(l => l.Log<Object>(
+                LogLevel.Debug,
+                RestLoggingEvents.DISABLED_METHOD_REQUEST,
+                It.IsAny<object>(),
+                It.IsAny<Exception>(),
+                It.IsAny<Func<Object, Exception, string>>()
+            ), Times.Once);
+        }
+
+        [Fact]
         public void CheckIfUpdateAsyncInvokedInUpdateHandler()
         {
             RequestDelegate updateHandler = _testRouter.CreateUpdateHandler<ClassForRestRouterTest>();
@@ -96,6 +241,54 @@ namespace NullPointer.AspNetCore.Rest.Tests
         }
 
         [Fact]
+        public void CheckIfUpdateHandlerSetsValidStatusCodeOnDisabled()
+        {
+            _registry.Register(new RestRegistryEntry(
+                typeof(ClassForRestRouterTest),
+                new RestModelOptionsBuilder()
+                    .WithDisabledUpdate()
+                    .AllowedOperations
+            ));
+            RequestDelegate updateHandler = _testRouter.CreateUpdateHandler<ClassForRestRouterTest>();
+            updateHandler.Invoke(_testContext).Wait();
+            _responseMock.VerifySet(r => r.StatusCode = StatusCodes.Status405MethodNotAllowed);
+        }
+
+        [Fact]
+        public void CheckIfUpdateLogged()
+        {
+            RequestDelegate updateHandler = _testRouter.CreateUpdateHandler<ClassForRestRouterTest>();
+            updateHandler.Invoke(_testContext).Wait();
+            _loggerMock.Verify(l => l.Log<Object>(
+                LogLevel.Debug,
+                RestLoggingEvents.UPDATE_REQUEST,
+                It.IsAny<object>(),
+                It.IsAny<Exception>(),
+                It.IsAny<Func<Object, Exception, string>>()
+            ));
+        }
+
+        [Fact]
+        public void CheckIfUpdateLoggedOnDisabled()
+        {
+            _registry.Register(new RestRegistryEntry(
+                typeof(ClassForRestRouterTest),
+                new RestModelOptionsBuilder()
+                    .WithDisabledUpdate()
+                    .AllowedOperations
+            ));
+            RequestDelegate updateHandler = _testRouter.CreateUpdateHandler<ClassForRestRouterTest>();
+            updateHandler.Invoke(_testContext).Wait();
+            _loggerMock.Verify(l => l.Log<Object>(
+                LogLevel.Debug,
+                RestLoggingEvents.DISABLED_METHOD_REQUEST,
+                It.IsAny<object>(),
+                It.IsAny<Exception>(),
+                It.IsAny<Func<Object, Exception, string>>()
+            ), Times.Once);
+        }
+
+        [Fact]
         public void CheckIfDeleteAsyncInvokedInDeleteHandler()
         {
             RequestDelegate deleteHandler = _testRouter.CreateDeleteHandler<ClassForRestRouterTest>();
@@ -109,6 +302,54 @@ namespace NullPointer.AspNetCore.Rest.Tests
             RequestDelegate deleteHandler = _testRouter.CreateDeleteHandler<ClassForRestRouterTest>();
             deleteHandler.Invoke(_testContext).Wait();
             _responseMock.VerifySet(r => r.StatusCode = StatusCodes.Status200OK);
+        }
+
+        [Fact]
+        public void CheckIfDeleteHandlerSetsValidStatusCodeOnDisabled()
+        {
+            _registry.Register(new RestRegistryEntry(
+                typeof(ClassForRestRouterTest),
+                new RestModelOptionsBuilder()
+                    .WithDisabledDelete()
+                    .AllowedOperations
+            ));
+            RequestDelegate deleteHandler = _testRouter.CreateDeleteHandler<ClassForRestRouterTest>();
+            deleteHandler.Invoke(_testContext).Wait();
+            _responseMock.VerifySet(r => r.StatusCode = StatusCodes.Status405MethodNotAllowed);
+        }
+
+        [Fact]
+        public void CheckIfDeleteLogged()
+        {
+            RequestDelegate deleteHandler = _testRouter.CreateDeleteHandler<ClassForRestRouterTest>();
+            deleteHandler.Invoke(_testContext).Wait();
+            _loggerMock.Verify(l => l.Log<Object>(
+                LogLevel.Debug,
+                RestLoggingEvents.DELETE_REQUEST,
+                It.IsAny<object>(),
+                It.IsAny<Exception>(),
+                It.IsAny<Func<Object, Exception, string>>()
+            ), Times.Once);
+        }
+
+        [Fact]
+        public void CheckIfDeleteLoggedOnDisabled()
+        {
+            _registry.Register(new RestRegistryEntry(
+                typeof(ClassForRestRouterTest),
+                new RestModelOptionsBuilder()
+                    .WithDisabledDelete()
+                    .AllowedOperations
+            ));
+            RequestDelegate deleteHandler = _testRouter.CreateDeleteHandler<ClassForRestRouterTest>();
+            deleteHandler.Invoke(_testContext).Wait();
+            _loggerMock.Verify(l => l.Log<Object>(
+                LogLevel.Debug,
+                RestLoggingEvents.DISABLED_METHOD_REQUEST,
+                It.IsAny<object>(),
+                It.IsAny<Exception>(),
+                It.IsAny<Func<Object, Exception, string>>()
+            ), Times.Once);
         }
 
         private void Prepare()
@@ -147,14 +388,25 @@ namespace NullPointer.AspNetCore.Rest.Tests
 
         private void PrepareLogger()
         {
+            _loggerMock.Setup(l => l.Log<Object>(
+                LogLevel.Debug,
+                It.IsIn(
+                    RestLoggingEvents.DISABLED_METHOD_REQUEST,
+                    RestLoggingEvents.GET_ALL_REQUEST,
+                    RestLoggingEvents.GET_REQUEST,
+                    RestLoggingEvents.ADD_REQUEST,
+                    RestLoggingEvents.UPDATE_REQUEST,
+                    RestLoggingEvents.DELETE_REQUEST
+                ),
+                It.IsAny<Object>(),
+                It.IsAny<Exception>(),
+                It.IsAny<Func<Object, Exception, string>>()
+            ));
         }
 
         private void PrepareServiceProvider()
         {
-            ILogger<RestRouter> logger = _loggerMock.Object;
             IDataRepository<ClassForRestRouterTest> repository = _repositoryMock.Object;
-            _serviceProviderMock.Setup(p => p.GetService(typeof(ILogger<RestRouter>)))
-                .Returns(logger);
             _serviceProviderMock.Setup(p => p.GetService(typeof(IDataRepository<ClassForRestRouterTest>)))
                 .Returns(repository);
         }
@@ -175,11 +427,11 @@ namespace NullPointer.AspNetCore.Rest.Tests
 
         private void PrepareRouter()
         {
-            IRestRegistry restRegistry = new RestRegistry();
-            restRegistry.Register(new RestRegistryEntry(typeof(ClassForRestRouterTest), RestAllowedOperations.All));
+            _registry.Register(new RestRegistryEntry(typeof(ClassForRestRouterTest), RestAllowedOperations.All));
             IConfiguration configuration = _configurationMock.Object;
             IServiceScopeFactory scopeFactory = _scopeFactoryMock.Object;
-            _testRouter = new RestRouter(restRegistry, configuration, scopeFactory);
+            ILogger<RestRouter> logger = _loggerMock.Object;
+            _testRouter = new RestRouter(_registry, configuration, scopeFactory, logger);
         }
 
         private void PrepareHttpRequest()
@@ -214,6 +466,7 @@ namespace NullPointer.AspNetCore.Rest.Tests
         private Mock<IServiceProvider> _serviceProviderMock = new Mock<IServiceProvider>();
         private Mock<IServiceScope> _scopeMock = new Mock<IServiceScope>();
         private Mock<IServiceScopeFactory> _scopeFactoryMock = new Mock<IServiceScopeFactory>();
+        private RestRegistry _registry = new RestRegistry();
         private RestRouter _testRouter;
         private Mock<HttpRequest> _requestMock = new Mock<HttpRequest>();
         private Mock<HttpResponse> _responseMock = new Mock<HttpResponse>();
