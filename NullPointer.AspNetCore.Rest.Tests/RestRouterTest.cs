@@ -17,6 +17,7 @@ using NullPointer.AspNetCore.Rest.Attributes;
 using Xunit;
 using Microsoft.Extensions.Logging;
 using NullPointer.AspNetCore.Rest.Builders;
+using NullPointer.AspNetCore.Rest.Tests.Extensions;
 
 namespace NullPointer.AspNetCore.Rest.Tests
 {
@@ -76,6 +77,20 @@ namespace NullPointer.AspNetCore.Rest.Tests
         }
 
         [Fact]
+        public void CheckIfGetAllLoggedOnResponse()
+        {
+            RequestDelegate getAllHandler = _testRouter.CreateGetAllHandler<ClassForRestRouterTest>();
+            getAllHandler.Invoke(_testContext).Wait();
+            _loggerMock.Verify(l => l.Log<Object>(
+                LogLevel.Debug, 
+                RestLoggingEvents.GET_ALL_RESPONSE, 
+                It.IsAny<Object>(),
+                It.IsAny<Exception>(),
+                It.IsAny<Func<Object, Exception, string>>()
+            ), Times.Once);
+        }
+
+        [Fact]
         public void CheckIfGetAllLoggedOnDisabled()
         {
             _registry.Register(new RestRegistryEntry(
@@ -98,7 +113,7 @@ namespace NullPointer.AspNetCore.Rest.Tests
         [Fact]
         public void CheckIfGetAsyncInvokedInGetHandler()
         {
-            int testId = 5;
+            int testId = 1;
             RequestDelegate getHandler = _testRouter.CreateGetHandler<ClassForRestRouterTest>(testId);
             getHandler.Invoke(_testContext).Wait();
             _repositoryMock.Verify(r => r.GetAsync(testId));
@@ -107,13 +122,21 @@ namespace NullPointer.AspNetCore.Rest.Tests
         [Fact]
         public void CheckIfGetHandlerSetsValidStatusCode()
         {
-            RequestDelegate getHandler = _testRouter.CreateGetHandler<ClassForRestRouterTest>(5);
+            RequestDelegate getHandler = _testRouter.CreateGetHandler<ClassForRestRouterTest>(1);
             getHandler.Invoke(_testContext).Wait();
             _responseMock.VerifySet(r => r.StatusCode = StatusCodes.Status200OK);
         }
 
         [Fact]
-        public void CheckIfGetHandlerSetsValidCodeOnDisabled()
+        public void CheckIfGetHandlerSetsValidStatusCodeOnNotFound()
+        {
+            RequestDelegate getHandler = _testRouter.CreateGetHandler<ClassForRestRouterTest>(2);
+            getHandler.Invoke(_testContext).Wait();
+            _responseMock.VerifySet(r => r.StatusCode = StatusCodes.Status404NotFound);
+        }
+
+        [Fact]
+        public void CheckIfGetHandlerSetsValidStatusCodeOnDisabled()
         {
             _registry.Register(new RestRegistryEntry(
                 typeof(ClassForRestRouterTest),
@@ -121,7 +144,7 @@ namespace NullPointer.AspNetCore.Rest.Tests
                     .WithDisabledGet()
                     .AllowedOperations
             ));
-            RequestDelegate getHandler = _testRouter.CreateGetHandler<ClassForRestRouterTest>(5);
+            RequestDelegate getHandler = _testRouter.CreateGetHandler<ClassForRestRouterTest>(1);
             getHandler.Invoke(_testContext).Wait();
             _responseMock.VerifySet(r => r.StatusCode = StatusCodes.Status405MethodNotAllowed);
         }
@@ -129,11 +152,39 @@ namespace NullPointer.AspNetCore.Rest.Tests
         [Fact]
         public void CheckIfGetLogged()
         {
-            RequestDelegate getHandler = _testRouter.CreateGetHandler<ClassForRestRouterTest>(5);
+            RequestDelegate getHandler = _testRouter.CreateGetHandler<ClassForRestRouterTest>(1);
             getHandler.Invoke(_testContext).Wait();
             _loggerMock.Verify(l => l.Log<Object>(
                 LogLevel.Debug,
                 RestLoggingEvents.GET_REQUEST,
+                It.IsAny<object>(),
+                It.IsAny<Exception>(),
+                It.IsAny<Func<Object, Exception, string>>()
+            ), Times.Once);
+        }
+
+        [Fact]
+        public void CheckIfGetLoggedOnResponse()
+        {
+            RequestDelegate getHandler = _testRouter.CreateGetHandler<ClassForRestRouterTest>(1);
+            getHandler.Invoke(_testContext).Wait();
+            _loggerMock.Verify(l => l.Log<Object>(
+                LogLevel.Debug,
+                RestLoggingEvents.GET_RESPONSE,
+                It.IsAny<object>(),
+                It.IsAny<Exception>(),
+                It.IsAny<Func<Object, Exception, string>>()
+            ), Times.Once);
+        }
+
+        [Fact]
+        public void CheckIfGetLoggedOnNotFound()
+        {
+            RequestDelegate getHandler = _testRouter.CreateGetHandler<ClassForRestRouterTest>(2);
+            getHandler.Invoke(_testContext).Wait();
+            _loggerMock.Verify(l => l.Log<Object>(
+                LogLevel.Debug,
+                RestLoggingEvents.GET_NOT_FOUND,
                 It.IsAny<object>(),
                 It.IsAny<Exception>(),
                 It.IsAny<Func<Object, Exception, string>>()
@@ -149,7 +200,7 @@ namespace NullPointer.AspNetCore.Rest.Tests
                     .WithDisabledGet()
                     .AllowedOperations
             ));
-            RequestDelegate getHandler = _testRouter.CreateGetHandler<ClassForRestRouterTest>(5);
+            RequestDelegate getHandler = _testRouter.CreateGetHandler<ClassForRestRouterTest>(1);
             getHandler.Invoke(_testContext).Wait();   
             _loggerMock.Verify(l => l.Log<Object>(
                 LogLevel.Debug,
@@ -198,6 +249,20 @@ namespace NullPointer.AspNetCore.Rest.Tests
             _loggerMock.Verify(l => l.Log<Object>(
                 LogLevel.Debug,
                 RestLoggingEvents.ADD_REQUEST,
+                It.IsAny<object>(),
+                It.IsAny<Exception>(),
+                It.IsAny<Func<Object, Exception, string>>()
+            ), Times.Once);
+        }
+
+        [Fact]
+        public void CheckIfAddLoggedOnResponse()
+        {
+            RequestDelegate addHandler = _testRouter.CreateAddHandler<ClassForRestRouterTest>();
+            addHandler.Invoke(_testContext).Wait();
+            _loggerMock.Verify(l => l.Log<Object>(
+                LogLevel.Debug,
+                RestLoggingEvents.ADD_RESPONSE,
                 It.IsAny<object>(),
                 It.IsAny<Exception>(),
                 It.IsAny<Func<Object, Exception, string>>()
@@ -269,6 +334,20 @@ namespace NullPointer.AspNetCore.Rest.Tests
         }
 
         [Fact]
+        public void CheckIfUpdateLoggedOnResponse()
+        {
+            RequestDelegate updateHandler = _testRouter.CreateUpdateHandler<ClassForRestRouterTest>();
+            updateHandler.Invoke(_testContext).Wait();
+            _loggerMock.Verify(l => l.Log<Object>(
+                LogLevel.Debug,
+                RestLoggingEvents.UPDATE_RESPONSE,
+                It.IsAny<object>(),
+                It.IsAny<Exception>(),
+                It.IsAny<Func<Object, Exception, string>>()
+            ));
+        }
+
+        [Fact]
         public void CheckIfUpdateLoggedOnDisabled()
         {
             _registry.Register(new RestRegistryEntry(
@@ -333,6 +412,20 @@ namespace NullPointer.AspNetCore.Rest.Tests
         }
 
         [Fact]
+        public void CheckIfDeleteLoggedOnResponse()
+        {
+            RequestDelegate deleteHandler = _testRouter.CreateDeleteHandler<ClassForRestRouterTest>();
+            deleteHandler.Invoke(_testContext).Wait();
+            _loggerMock.Verify(l => l.Log<Object>(
+                LogLevel.Debug,
+                RestLoggingEvents.DELETE_RESPONSE,
+                It.IsAny<object>(),
+                It.IsAny<Exception>(),
+                It.IsAny<Func<Object, Exception, string>>()
+            ), Times.Once);
+        }
+
+        [Fact]
         public void CheckIfDeleteLoggedOnDisabled()
         {
             _registry.Register(new RestRegistryEntry(
@@ -376,8 +469,10 @@ namespace NullPointer.AspNetCore.Rest.Tests
         {
             _repositoryMock.Setup(r => r.GetAllAsync())
                 .Returns(Task.FromResult(Enumerable.Empty<ClassForRestRouterTest>()));
-            _repositoryMock.Setup(r => r.GetAsync(It.IsAny<int>()))
+            _repositoryMock.Setup(r => r.GetAsync(1))
                 .Returns(Task.FromResult(new ClassForRestRouterTest()));
+            _repositoryMock.Setup(r => r.GetAsync(It.IsNotIn(1)))
+                .Returns(Task.FromResult((ClassForRestRouterTest)null));
             _repositoryMock.Setup(r => r.AddAsync(It.IsAny<ClassForRestRouterTest>()))
                 .Returns(Task.CompletedTask);
             _repositoryMock.Setup(r => r.UpdateAsync(It.IsAny<ClassForRestRouterTest>()))
@@ -391,12 +486,9 @@ namespace NullPointer.AspNetCore.Rest.Tests
             _loggerMock.Setup(l => l.Log<Object>(
                 LogLevel.Debug,
                 It.IsIn(
-                    RestLoggingEvents.DISABLED_METHOD_REQUEST,
-                    RestLoggingEvents.GET_ALL_REQUEST,
-                    RestLoggingEvents.GET_REQUEST,
-                    RestLoggingEvents.ADD_REQUEST,
-                    RestLoggingEvents.UPDATE_REQUEST,
-                    RestLoggingEvents.DELETE_REQUEST
+                    typeof(RestLoggingEvents).GetConstants<int>()
+                        .Values
+                        .ToArray()
                 ),
                 It.IsAny<Object>(),
                 It.IsAny<Exception>(),

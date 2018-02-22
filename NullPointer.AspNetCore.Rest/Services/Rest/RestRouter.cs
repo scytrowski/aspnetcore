@@ -47,8 +47,6 @@ namespace NullPointer.AspNetCore.Rest.Services.Rest
             {
                 return DoInScopeAsync<TModel>(async repository =>
                 {
-                    Logger.LogDebug(RestLoggingEvents.GET_ALL_REQUEST, "Requested GET ALL method on '{MODEL}' model", typeof(TModel).Name);
-
                     if (!IsOperationAllowed<TModel>(RestAllowedOperations.GetAll))
                     {
                         context.Response.StatusCode = StatusCodes.Status405MethodNotAllowed;
@@ -56,11 +54,11 @@ namespace NullPointer.AspNetCore.Rest.Services.Rest
                         return;
                     }
 
+                    Logger.LogDebug(RestLoggingEvents.GET_ALL_REQUEST, "Requested GET ALL method on '{MODEL}' model", typeof(TModel).Name);
                     IEnumerable<TModel> models = await repository.GetAllAsync();
                     context.Response.StatusCode = StatusCodes.Status200OK;
                     await context.Response.WriteJsonAsync(models);
-
-
+                    Logger.LogDebug(RestLoggingEvents.GET_ALL_RESPONSE, "Prepared response for GET ALL method on '{MODEL}' model", typeof(TModel).Name);
                 });
             };
         }
@@ -71,8 +69,6 @@ namespace NullPointer.AspNetCore.Rest.Services.Rest
             {
                 return DoInScopeAsync<TModel>(async repository =>
                 {
-                    Logger.LogDebug(RestLoggingEvents.GET_REQUEST, "Requested GET method on '{MODEL}' model", typeof(TModel).Name);
-
                     if (!IsOperationAllowed<TModel>(RestAllowedOperations.Get))
                     {
                         context.Response.StatusCode = StatusCodes.Status405MethodNotAllowed;
@@ -82,19 +78,23 @@ namespace NullPointer.AspNetCore.Rest.Services.Rest
                     else if (id == null)
                     {
                         context.Response.StatusCode = StatusCodes.Status400BadRequest;
+                        Logger.LogDebug(RestLoggingEvents.GET_NULL_ID, "Requested GET method with null id on '{MODEL}' model", typeof(TModel).Name);
                         return;
                     }
 
+                    Logger.LogDebug(RestLoggingEvents.GET_REQUEST, "Requested GET method on '{MODEL}' model", typeof(TModel).Name);
                     TModel model = await repository.GetAsync(id.Value);
 
                     if (model != null)
                     {
                         context.Response.StatusCode = StatusCodes.Status200OK;
                         await context.Response.WriteJsonAsync(model);
+                        Logger.LogDebug(RestLoggingEvents.GET_RESPONSE, "Prepared response for GET with ID = '{ID}' method on '{MODEL}' model", id, typeof(TModel).Name);
                     }
                     else
                     {
                         context.Response.StatusCode = StatusCodes.Status404NotFound;
+                        Logger.LogDebug(RestLoggingEvents.GET_NOT_FOUND, "Model '{MODEL}' with ID = '{ID}' not found in GET method");
                     }
                 });
             };
@@ -106,8 +106,6 @@ namespace NullPointer.AspNetCore.Rest.Services.Rest
             {
                 return DoInScopeAsync<TModel>(async repository =>
                 {
-                    Logger.LogDebug(RestLoggingEvents.ADD_REQUEST, "Requested ADD method on '{MODEL}' model", typeof(TModel).Name);
-
                     if (!IsOperationAllowed<TModel>(RestAllowedOperations.Add))
                     {
                         context.Response.StatusCode = StatusCodes.Status405MethodNotAllowed;
@@ -115,12 +113,14 @@ namespace NullPointer.AspNetCore.Rest.Services.Rest
                         return;
                     }
 
+                    Logger.LogDebug(RestLoggingEvents.ADD_REQUEST, "Requested ADD method on '{MODEL}' model", typeof(TModel).Name);
                     TModel model = await context.Request.ReadJsonAsync<TModel>();
                     await repository.AddAsync(model);
                     string modelLocation = GetModelLocation(model);
                     context.Response.StatusCode = StatusCodes.Status201Created;
                     context.Response.Headers.Add("location", modelLocation);
                     await context.Response.WriteJsonAsync(model);
+                    Logger.LogDebug(RestLoggingEvents.ADD_RESPONSE, "Prepared response for ADD method on '{MODEL}' model", typeof(TModel).Name);
                 });
             };
         }
@@ -131,8 +131,6 @@ namespace NullPointer.AspNetCore.Rest.Services.Rest
             {
                 return DoInScopeAsync<TModel>(async repository =>
                 {
-                    Logger.LogDebug(RestLoggingEvents.UPDATE_REQUEST, "Requested UPDATE method on '{MODEL}' model", typeof(TModel).Name);
-
                     if (!IsOperationAllowed<TModel>(RestAllowedOperations.Update))
                     {
                         context.Response.StatusCode = StatusCodes.Status405MethodNotAllowed;
@@ -140,12 +138,14 @@ namespace NullPointer.AspNetCore.Rest.Services.Rest
                         return;
                     }
 
+                    Logger.LogDebug(RestLoggingEvents.UPDATE_REQUEST, "Requested UPDATE method on '{MODEL}' model", typeof(TModel).Name);
                     TModel model = await context.Request.ReadJsonAsync<TModel>();
                     await repository.UpdateAsync(model);
                     string modelLocation = GetModelLocation(model);
                     context.Response.StatusCode = StatusCodes.Status200OK;
                     context.Response.Headers.Add("location", modelLocation);
                     await context.Response.WriteJsonAsync(model);
+                    Logger.LogDebug(RestLoggingEvents.UPDATE_RESPONSE, "Prepared response for UPDATE method on '{MODEL}' model", typeof(TModel).Name);
                 });
             };
         }
@@ -156,8 +156,6 @@ namespace NullPointer.AspNetCore.Rest.Services.Rest
             {
                 return DoInScopeAsync<TModel>(async repository =>
                 {
-                    Logger.LogDebug(RestLoggingEvents.DELETE_REQUEST, "Requested DELETE method on '{MODEL}' model", typeof(TModel).Name);
-
                     if (!IsOperationAllowed<TModel>(RestAllowedOperations.Delete))
                     {
                         context.Response.StatusCode = StatusCodes.Status405MethodNotAllowed;
@@ -165,9 +163,11 @@ namespace NullPointer.AspNetCore.Rest.Services.Rest
                         return;
                     }
 
+                    Logger.LogDebug(RestLoggingEvents.DELETE_REQUEST, "Requested DELETE method on '{MODEL}' model", typeof(TModel).Name);
                     TModel model = await context.Request.ReadJsonAsync<TModel>();
                     await repository.DeleteAsync(model);
                     context.Response.StatusCode = StatusCodes.Status200OK;
+                    Logger.LogDebug(RestLoggingEvents.DELETE_RESPONSE, "Prepared response for DELETE method on '{MODEL}' model", typeof(TModel).Name);
                 });
             };
         }
